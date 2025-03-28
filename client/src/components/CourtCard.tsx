@@ -15,8 +15,8 @@ export default function CourtCard({ court, pairing, selected = false, onRemove, 
       className={`border ${selected ? 'border-[var(--color-primary)]' : 'border-gray-200'} rounded-lg bg-white shadow-sm overflow-hidden transition-all ${onToggleSelection ? 'cursor-pointer hover:shadow-md' : ''} ${selected ? 'ring-2 ring-[var(--color-primary)] ring-opacity-50' : ''}`}
       onClick={onToggleSelection}
     >
-      <div className={`${selected ? 'bg-[var(--color-primary)]' : 'bg-primary-600'} text-${selected ? '[var(--color-dark)]' : 'white'} p-4 flex justify-between items-center`}>
-        <h3 className="font-medium">{court.name}</h3>
+      <div className={`${selected ? 'bg-[var(--color-primary)]' : 'bg-primary-600'} p-4 flex justify-between items-center`}>
+        <h3 className={`font-bold text-lg ${selected ? 'text-[var(--color-dark)]' : 'text-white'}`}>{court.name}</h3>
         <button 
           onClick={(e) => {
             e.stopPropagation(); // Previene que el click en el botón de eliminar active el toggle
@@ -55,8 +55,11 @@ export default function CourtCard({ court, pairing, selected = false, onRemove, 
             </div>
           </>
         ) : (
-          <div className="flex items-center justify-center p-4 text-gray-500 text-sm">
-            Genera parejas para asignar jugadores
+          <div className="flex flex-col items-center justify-center p-4 text-center">
+            <div className="text-gray-700 mb-1 font-medium">Cancha {court.name}</div>
+            <div className="text-gray-500 text-sm">
+              Genera el rol de juegos para asignar jugadores
+            </div>
           </div>
         )}
       </div>
