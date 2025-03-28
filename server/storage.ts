@@ -233,18 +233,56 @@ export class MemStorage implements IStorage {
     const ranking1 = this.playerRankings.get(player1Id);
     const ranking2 = this.playerRankings.get(player2Id);
     
+    // Obtener todos los resultados para verificar marcadores 6-0
+    const results = Array.from(this.matchResults.values());
+    const specialScoreResults = results.filter(result => 
+      (result.pair1Score === 6 && result.pair2Score === 0) || 
+      (result.pair1Score === 0 && result.pair2Score === 6)
+    );
+    
     if (ranking1) {
       // Actualizar estadísticas del jugador 1
       ranking1.gamesPlayed += 1;
       ranking1.setsPlayed += setCount;
       
+      // 1 punto por default por participación
+      ranking1.points += 1;
+      
       if (isWinner) {
         ranking1.gamesWon += 1;
         ranking1.setsWon += setCount;
-        ranking1.points += 3; // 3 puntos por victoria
+        
+        // 1 punto adicional por cada set ganado
+        ranking1.points += setCount;
+        
+        // Verificar si hubo marcadores 6-0 a favor
+        for (const result of specialScoreResults) {
+          if ((result.winner === 'pair1' && 
+               (result.pair1.player1.id === player1Id || result.pair1.player2.id === player1Id)) || 
+              (result.winner === 'pair2' && 
+               (result.pair2.player1.id === player1Id || result.pair2.player2.id === player1Id))) {
+            // 3 puntos adicionales por sets 6-0
+            ranking1.points += 3;
+          }
+        }
       } else {
-        ranking1.points += 1; // 1 punto por participación
+        // Restar 1 punto por cada set perdido
+        ranking1.points -= setCount;
+        
+        // Verificar si hubo marcadores 0-6 en contra
+        for (const result of specialScoreResults) {
+          if ((result.winner === 'pair2' && 
+               (result.pair1.player1.id === player1Id || result.pair1.player2.id === player1Id)) || 
+              (result.winner === 'pair1' && 
+               (result.pair2.player1.id === player1Id || result.pair2.player2.id === player1Id))) {
+            // -3 puntos adicionales por sets 0-6
+            ranking1.points -= 3;
+          }
+        }
       }
+      
+      // Asegurar que los puntos no sean negativos
+      ranking1.points = Math.max(0, ranking1.points);
       
       this.playerRankings.set(player1Id, ranking1);
     }
@@ -254,13 +292,44 @@ export class MemStorage implements IStorage {
       ranking2.gamesPlayed += 1;
       ranking2.setsPlayed += setCount;
       
+      // 1 punto por default por participación
+      ranking2.points += 1;
+      
       if (isWinner) {
         ranking2.gamesWon += 1;
         ranking2.setsWon += setCount;
-        ranking2.points += 3; // 3 puntos por victoria
+        
+        // 1 punto adicional por cada set ganado
+        ranking2.points += setCount;
+        
+        // Verificar si hubo marcadores 6-0 a favor
+        for (const result of specialScoreResults) {
+          if ((result.winner === 'pair1' && 
+               (result.pair1.player1.id === player2Id || result.pair1.player2.id === player2Id)) || 
+              (result.winner === 'pair2' && 
+               (result.pair2.player1.id === player2Id || result.pair2.player2.id === player2Id))) {
+            // 3 puntos adicionales por sets 6-0
+            ranking2.points += 3;
+          }
+        }
       } else {
-        ranking2.points += 1; // 1 punto por participación
+        // Restar 1 punto por cada set perdido
+        ranking2.points -= setCount;
+        
+        // Verificar si hubo marcadores 0-6 en contra
+        for (const result of specialScoreResults) {
+          if ((result.winner === 'pair2' && 
+               (result.pair1.player1.id === player2Id || result.pair1.player2.id === player2Id)) || 
+              (result.winner === 'pair1' && 
+               (result.pair2.player1.id === player2Id || result.pair2.player2.id === player2Id))) {
+            // -3 puntos adicionales por sets 0-6
+            ranking2.points -= 3;
+          }
+        }
       }
+      
+      // Asegurar que los puntos no sean negativos
+      ranking2.points = Math.max(0, ranking2.points);
       
       this.playerRankings.set(player2Id, ranking2);
     }

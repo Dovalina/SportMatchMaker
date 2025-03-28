@@ -4,10 +4,13 @@ import Footer from "@/components/Footer";
 import PlayerInput from "@/components/PlayerInput";
 import CourtManager from "@/components/CourtManager";
 import ResultDisplay from "@/components/ResultDisplay";
+import PlayerRankings from "@/components/PlayerRankings";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dice5, Trophy, Users } from "lucide-react";
 import type { Player, Court, Pairings, CourtPairing } from "@shared/schema";
 
 // Extender el tipo Court para incluir el estado de selección
@@ -53,10 +56,16 @@ export default function Home() {
     mutationFn: async (data: string | { name: string; playerData?: Partial<Player> }) => {
       // Si es solo un string, consideramos que es el nombre
       if (typeof data === 'string') {
-        await apiRequest("POST", "/api/players", { name: data });
+        await apiRequest("/api/players", { 
+          method: "POST", 
+          body: JSON.stringify({ name: data }) 
+        });
       } else {
         const { name, playerData = {} } = data;
-        await apiRequest("POST", "/api/players", { name, ...playerData });
+        await apiRequest("/api/players", { 
+          method: "POST", 
+          body: JSON.stringify({ name, ...playerData }) 
+        });
       }
     },
     onSuccess: () => {
@@ -74,7 +83,9 @@ export default function Home() {
   // Toggle player selection mutation
   const togglePlayerSelectionMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await apiRequest("POST", `/api/players/${id}/toggle-selection`, {});
+      const response = await apiRequest(`/api/players/${id}/toggle-selection`, {
+        method: "POST"
+      });
       return await response.json() as Player;
     },
     onSuccess: () => {
@@ -92,7 +103,9 @@ export default function Home() {
   // Remove player mutation
   const removePlayerMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/players/${id}`);
+      await apiRequest(`/api/players/${id}`, {
+        method: "DELETE"
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/players"] });
@@ -124,7 +137,10 @@ export default function Home() {
       
       // Agregar la primera cancha disponible
       const name = availableNames[0];
-      await apiRequest("POST", "/api/courts", { name });
+      await apiRequest("/api/courts", {
+        method: "POST",
+        body: JSON.stringify({ name })
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/courts"] });
@@ -145,7 +161,9 @@ export default function Home() {
   // Remove court mutation
   const removeCourtMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/courts/${id}`);
+      await apiRequest(`/api/courts/${id}`, {
+        method: "DELETE"
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/courts"] });
@@ -162,7 +180,10 @@ export default function Home() {
   // Generate pairings mutation
   const generatePairingsMutation = useMutation({
     mutationFn: async (data: { gameDate?: string; sets?: number; selectedCourtIds?: number[] }) => {
-      const response = await apiRequest("POST", "/api/pairings/generate", data);
+      const response = await apiRequest("/api/pairings/generate", {
+        method: "POST",
+        body: JSON.stringify(data)
+      });
       return (await response.json()) as Pairings;
     },
     onSuccess: (data) => {
@@ -228,34 +249,59 @@ export default function Home() {
       <Header onReset={handleReset} />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow">
-        <PlayerInput
-          players={players}
-          isLoading={isLoadingPlayers}
-          onAddPlayer={(name, playerData) => 
-            addPlayerMutation.mutate({ name, playerData })
-          }
-          onRemovePlayer={(id) => removePlayerMutation.mutate(id)}
-          onTogglePlayerSelection={(id) => togglePlayerSelectionMutation.mutate(id)}
-        />
+        <Tabs defaultValue="players" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-8">
+            <TabsTrigger value="players" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              <span>Jugadores</span>
+            </TabsTrigger>
+            <TabsTrigger value="game" className="flex items-center gap-2">
+              <Dice5 className="h-4 w-4" />
+              <span>Juego</span>
+            </TabsTrigger>
+            <TabsTrigger value="rankings" className="flex items-center gap-2">
+              <Trophy className="h-4 w-4" />
+              <span>Clasificación</span>
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="players" className="space-y-6">
+            <PlayerInput
+              players={players}
+              isLoading={isLoadingPlayers}
+              onAddPlayer={(name, playerData) => 
+                addPlayerMutation.mutate({ name, playerData })
+              }
+              onRemovePlayer={(id) => removePlayerMutation.mutate(id)}
+              onTogglePlayerSelection={(id) => togglePlayerSelectionMutation.mutate(id)}
+            />
+          </TabsContent>
+          
+          <TabsContent value="game" className="space-y-6">
+            <CourtManager
+              courts={courts}
+              players={players}
+              pairings={pairings}
+              isLoading={isLoadingCourts}
+              isGenerating={generatePairingsMutation.isPending}
+              onAddCourt={() => addCourtMutation.mutate()}
+              onRemoveCourt={(id) => removeCourtMutation.mutate(id)}
+              onToggleCourtSelection={toggleCourtSelection}
+              courtsWithSelection={courtsWithSelection}
+              onGeneratePairings={(gameDate, sets, selectedCourtIds) => 
+                generatePairingsMutation.mutate({ gameDate, sets, selectedCourtIds })
+              }
+              canGeneratePairings={canGeneratePairings()}
+              validationMessage={getValidationMessage()}
+            />
 
-        <CourtManager
-          courts={courts}
-          players={players}
-          pairings={pairings}
-          isLoading={isLoadingCourts}
-          isGenerating={generatePairingsMutation.isPending}
-          onAddCourt={() => addCourtMutation.mutate()}
-          onRemoveCourt={(id) => removeCourtMutation.mutate(id)}
-          onToggleCourtSelection={toggleCourtSelection}
-          courtsWithSelection={courtsWithSelection}
-          onGeneratePairings={(gameDate, sets, selectedCourtIds) => 
-            generatePairingsMutation.mutate({ gameDate, sets, selectedCourtIds })
-          }
-          canGeneratePairings={canGeneratePairings()}
-          validationMessage={getValidationMessage()}
-        />
-
-        <ResultDisplay pairings={pairings} />
+            <ResultDisplay pairings={pairings} />
+          </TabsContent>
+          
+          <TabsContent value="rankings" className="space-y-6">
+            <PlayerRankings />
+          </TabsContent>
+        </Tabs>
       </main>
       
       <Footer />

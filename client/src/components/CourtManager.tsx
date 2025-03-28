@@ -15,7 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 // Esquema para validación del formulario
 const gamePairingSchema = z.object({
   gameDate: z.string().min(1, { message: "La fecha es obligatoria" }),
-  sets: z.coerce.number().min(1, { message: "Mínimo 1 set" }).max(5, { message: "Máximo 5 sets" }),
+  sets: z.coerce.number().min(3, { message: "Mínimo 3 sets" }).max(7, { message: "Máximo 7 sets" }),
 });
 
 type GamePairingFormValues = z.infer<typeof gamePairingSchema>;
@@ -54,7 +54,7 @@ export default function CourtManager({
     resolver: zodResolver(gamePairingSchema),
     defaultValues: {
       gameDate: new Date().toISOString().split('T')[0],
-      sets: 1,
+      sets: 3, // Valor por defecto: 3 sets
     },
   });
   return (
@@ -139,10 +139,17 @@ export default function CourtManager({
                       <FormControl>
                         <Input
                           type="number"
-                          min="1"
-                          max="5"
+                          min="3"
+                          max="7"
                           {...field}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value);
+                            field.onChange(value < 3 ? 3 : value);
+                          }}
                         />
+                        <FormDescription className="text-xs text-gray-500">
+                          Mínimo 3 sets por rol
+                        </FormDescription>
                       </FormControl>
                     </FormItem>
                   )}
