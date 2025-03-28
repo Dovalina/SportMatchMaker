@@ -94,6 +94,14 @@ export class MemStorage implements IStorage {
       password: "admin123", // En una implementación real, esto debería estar hasheado
       selected: false
     });
+    
+    // Crear usuario admin con número de teléfono específico
+    this.createPlayer({
+      name: "Administrador",
+      role: UserRole.ADMIN,
+      phone: "123456789", // Número para acceso de administrador
+      selected: false
+    });
   }
 
   // Player operations
