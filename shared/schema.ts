@@ -54,6 +54,8 @@ export const courtPairingSchema = z.object({
   courtName: z.string(),
   pair1: pairSchema,
   pair2: pairSchema,
+  sets: z.number().min(1).default(1),
+  gameDate: z.string().optional(),
 });
 
 // Complete pairings result
