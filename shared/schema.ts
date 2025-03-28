@@ -127,6 +127,7 @@ export const matchResultSchema = z.object({
 export const playerRankingSchema = z.object({
   playerId: z.number(),
   playerName: z.string(),
+  playerAlias: z.string().nullable().optional(),
   gamesPlayed: z.number().default(0),
   gamesWon: z.number().default(0),
   setsPlayed: z.number().default(0),

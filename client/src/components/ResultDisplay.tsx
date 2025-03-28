@@ -179,7 +179,7 @@ export default function ResultDisplay({ pairings }: ResultDisplayProps) {
                         <div className="text-sm font-medium text-primary-600 mb-2 text-center">Pareja 1</div>
                         <ul className="space-y-1">
                           <li className="text-gray-700 text-center flex items-center justify-center gap-1">
-                            {pairing.pair1.player1.name}
+                            {pairing.pair1.player1.alias || pairing.pair1.player1.name}
                             <span className="inline-flex items-center justify-center bg-yellow-100 text-yellow-800 text-xs font-medium px-1.5 py-0.5 rounded">
                               <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -188,7 +188,7 @@ export default function ResultDisplay({ pairings }: ResultDisplayProps) {
                             </span>
                           </li>
                           <li className="text-gray-700 text-center flex items-center justify-center gap-1">
-                            {pairing.pair1.player2.name}
+                            {pairing.pair1.player2.alias || pairing.pair1.player2.name}
                             <span className="inline-flex items-center justify-center bg-yellow-100 text-yellow-800 text-xs font-medium px-1.5 py-0.5 rounded">
                               <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -202,7 +202,7 @@ export default function ResultDisplay({ pairings }: ResultDisplayProps) {
                         <div className="text-sm font-medium text-primary-600 mb-2 text-center">Pareja 2</div>
                         <ul className="space-y-1">
                           <li className="text-gray-700 text-center flex items-center justify-center gap-1">
-                            {pairing.pair2.player1.name}
+                            {pairing.pair2.player1.alias || pairing.pair2.player1.name}
                             <span className="inline-flex items-center justify-center bg-yellow-100 text-yellow-800 text-xs font-medium px-1.5 py-0.5 rounded">
                               <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -211,7 +211,7 @@ export default function ResultDisplay({ pairings }: ResultDisplayProps) {
                             </span>
                           </li>
                           <li className="text-gray-700 text-center flex items-center justify-center gap-1">
-                            {pairing.pair2.player2.name}
+                            {pairing.pair2.player2.alias || pairing.pair2.player2.name}
                             <span className="inline-flex items-center justify-center bg-yellow-100 text-yellow-800 text-xs font-medium px-1.5 py-0.5 rounded">
                               <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -245,7 +245,7 @@ export default function ResultDisplay({ pairings }: ResultDisplayProps) {
                       <div>
                         <div className="font-medium">{pairing.courtName}</div>
                         <div className="text-xs opacity-80">
-                          {pairing.pair1.player1.name} / {pairing.pair1.player2.name} vs {pairing.pair2.player1.name} / {pairing.pair2.player2.name}
+                          {pairing.pair1.player1.alias || pairing.pair1.player1.name} / {pairing.pair1.player2.alias || pairing.pair1.player2.name} vs {pairing.pair2.player1.alias || pairing.pair2.player1.name} / {pairing.pair2.player2.alias || pairing.pair2.player2.name}
                         </div>
                       </div>
                     </Button>

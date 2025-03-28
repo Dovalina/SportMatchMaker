@@ -288,6 +288,7 @@ export class MemStorage implements IStorage {
       this.playerRankings.set(player.id, {
         playerId: player.id,
         playerName: player.name,
+        playerAlias: player.alias || null,
         gamesPlayed: 0,
         gamesWon: 0,
         setsPlayed: 0,

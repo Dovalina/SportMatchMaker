@@ -137,15 +137,15 @@ export default function MatchResultForm({ pairing, onSuccess }: MatchResultFormP
           <div className="bg-gray-50 p-3 rounded-lg text-center">
             <h3 className="font-bold text-sm mb-2">Pareja 1</h3>
             <div className="text-sm">
-              <div>{pairing.pair1.player1.name}</div>
-              <div>{pairing.pair1.player2.name}</div>
+              <div>{pairing.pair1.player1.alias || pairing.pair1.player1.name}</div>
+              <div>{pairing.pair1.player2.alias || pairing.pair1.player2.name}</div>
             </div>
           </div>
           <div className="bg-gray-50 p-3 rounded-lg text-center">
             <h3 className="font-bold text-sm mb-2">Pareja 2</h3>
             <div className="text-sm">
-              <div>{pairing.pair2.player1.name}</div>
-              <div>{pairing.pair2.player2.name}</div>
+              <div>{pairing.pair2.player1.alias || pairing.pair2.player1.name}</div>
+              <div>{pairing.pair2.player2.alias || pairing.pair2.player2.name}</div>
             </div>
           </div>
         </div>

@@ -25,11 +25,11 @@ export default function PlayerChip({ player, onRemove, onToggleSelection }: Play
           className="h-3.5 w-3.5 rounded-sm border-white"
         />
       )}
-      <span>{player.name}</span>
+      <span>{player.alias || player.name}</span>
       <button
         onClick={onRemove}
         className={`ml-auto ${isSelected ? 'text-white/70 hover:text-white' : 'text-[var(--color-dark)]/70 hover:text-[var(--color-dark)]'} focus:outline-none`}
-        aria-label={`Eliminar ${player.name}`}
+        aria-label={`Eliminar ${player.alias || player.name}`}
       >
         <X className="h-4 w-4" />
       </button>

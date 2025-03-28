@@ -67,7 +67,7 @@ export default function PlayerRankings() {
                       {getPositionIcon(index + 1)}
                       <span className="ml-2">{index + 1}</span>
                     </TableCell>
-                    <TableCell className="font-medium">{player.playerName}</TableCell>
+                    <TableCell className="font-medium">{player.playerAlias || player.playerName}</TableCell>
                     <TableCell className="text-center">{player.gamesPlayed}</TableCell>
                     <TableCell className="text-center">{player.gamesWon}</TableCell>
                     <TableCell className="text-center">{player.setsPlayed}</TableCell>

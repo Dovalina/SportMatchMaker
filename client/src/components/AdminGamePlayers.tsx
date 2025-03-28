@@ -272,8 +272,8 @@ export default function AdminGamePlayers({ gameId }: { gameId: number }) {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Nombre</TableHead>
                         <TableHead>Alias</TableHead>
+                        <TableHead>Nombre completo</TableHead>
                         <TableHead>Teléfono</TableHead>
                         <TableHead>Acciones</TableHead>
                       </TableRow>
@@ -294,9 +294,9 @@ export default function AdminGamePlayers({ gameId }: { gameId: number }) {
 
                           return (
                             <TableRow key={player.id}>
-                              <TableCell>{player.name}</TableCell>
+                              <TableCell>{player.alias || player.name}</TableCell>
                               <TableCell>
-                                {player.alias || "-"}
+                                {player.name}
                                 {player.invitedBy && (
                                   <Badge variant="outline" className="ml-2">
                                     Invitado
@@ -355,8 +355,8 @@ export default function AdminGamePlayers({ gameId }: { gameId: number }) {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Nombre</TableHead>
                           <TableHead>Alias</TableHead>
+                          <TableHead>Nombre completo</TableHead>
                           <TableHead>Teléfono</TableHead>
                           <TableHead>Acciones</TableHead>
                         </TableRow>
@@ -364,8 +364,8 @@ export default function AdminGamePlayers({ gameId }: { gameId: number }) {
                       <TableBody>
                         {waitList.map((player) => (
                           <TableRow key={player.id}>
+                            <TableCell>{player.alias || player.name}</TableCell>
                             <TableCell>{player.name}</TableCell>
-                            <TableCell>{player.alias || "-"}</TableCell>
                             <TableCell>{player.phone || "-"}</TableCell>
                             <TableCell>
                               <Button

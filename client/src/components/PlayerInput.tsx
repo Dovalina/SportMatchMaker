@@ -36,6 +36,7 @@ export default function PlayerInput({
 }: PlayerInputProps) {
   const [activeTab, setActiveTab] = useState("simple");
   const [playerName, setPlayerName] = useState("");
+  const [playerAlias, setPlayerAlias] = useState("");
 
   // Configuración del formulario completo
   const form = useForm<z.infer<typeof playerFormSchema>>({
@@ -50,13 +51,17 @@ export default function PlayerInput({
 
   const handleAddPlayer = () => {
     if (playerName.trim()) {
-      onAddPlayer(playerName.trim());
+      onAddPlayer(playerName.trim(), {
+        alias: playerAlias.trim() || null
+      });
       setPlayerName("");
+      setPlayerAlias("");
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
+      e.preventDefault();
       handleAddPlayer();
     }
   };
@@ -82,24 +87,42 @@ export default function PlayerInput({
           </TabsList>
           
           <TabsContent value="simple">
-            <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4">
-              <div className="flex-grow">
-                <label htmlFor="playerName" className="block text-sm font-medium text-[var(--color-dark)]">
-                  Nombre del Jugador
-                </label>
-                <div className="mt-1 flex rounded-md shadow-sm">
-                  <Input
-                    id="playerName"
-                    value={playerName}
-                    onChange={(e) => setPlayerName(e.target.value)}
-                    onKeyUp={handleKeyPress}
-                    placeholder="Ej. Juan Pérez"
-                    className="focus-visible:ring-[var(--color-primary)] flex-grow"
-                    disabled={isLoading}
-                  />
+            <div className="flex flex-col space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="playerName" className="block text-sm font-medium text-[var(--color-dark)]">
+                    Nombre del Jugador
+                  </label>
+                  <div className="mt-1">
+                    <Input
+                      id="playerName"
+                      value={playerName}
+                      onChange={(e) => setPlayerName(e.target.value)}
+                      onKeyUp={handleKeyPress}
+                      placeholder="Ej. Juan Pérez"
+                      className="focus-visible:ring-[var(--color-primary)] w-full"
+                      disabled={isLoading}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="playerAlias" className="block text-sm font-medium text-[var(--color-dark)]">
+                    Alias (opcional)
+                  </label>
+                  <div className="mt-1">
+                    <Input
+                      id="playerAlias"
+                      value={playerAlias}
+                      onChange={(e) => setPlayerAlias(e.target.value)}
+                      onKeyUp={handleKeyPress}
+                      placeholder="Apodo o nombre corto"
+                      className="focus-visible:ring-[var(--color-primary)] w-full"
+                      disabled={isLoading}
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="sm:mt-7">
+              <div className="flex justify-end">
                 <Button
                   onClick={handleAddPlayer}
                   disabled={isLoading || !playerName.trim()}
