@@ -1,13 +1,16 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Share2, Download, Trophy, ClipboardList } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import html2canvas from "html2canvas";
 import { saveAs } from "file-saver";
-import type { CourtPairing } from "@shared/schema";
+import type { CourtPairing, PlayerRanking } from "@shared/schema";
 import MatchResultForm from "./MatchResultForm";
+import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 
 interface ResultDisplayProps {
   pairings: CourtPairing[];
@@ -16,6 +19,19 @@ interface ResultDisplayProps {
 export default function ResultDisplay({ pairings }: ResultDisplayProps) {
   const resultsRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
+  const { toast } = useToast();
+  
+  // Obtener los rankings de los jugadores
+  const { data: rankings = [] } = useQuery<PlayerRanking[]>({
+    queryKey: ["/api/rankings"],
+    enabled: pairings.length > 0, // Solo realizar la consulta si hay emparejamientos
+  });
+  
+  // Función para obtener el ranking de un jugador por su ID
+  const getPlayerRanking = (playerId: number) => {
+    const ranking = rankings.find(r => r.playerId === playerId);
+    return ranking ? ranking.points : 0; // Si no tiene ranking, devolvemos 0
+  };
 
   // Function to generate and share image via WhatsApp
   const shareViaWhatsApp = async () => {
@@ -162,15 +178,47 @@ export default function ResultDisplay({ pairings }: ResultDisplayProps) {
                       <div className="bg-white p-3 rounded shadow-sm border border-gray-100">
                         <div className="text-sm font-medium text-primary-600 mb-2 text-center">Pareja 1</div>
                         <ul className="space-y-1">
-                          <li className="text-gray-700 text-center">{pairing.pair1.player1.name}</li>
-                          <li className="text-gray-700 text-center">{pairing.pair1.player2.name}</li>
+                          <li className="text-gray-700 text-center flex items-center justify-center gap-1">
+                            {pairing.pair1.player1.name}
+                            <span className="inline-flex items-center justify-center bg-yellow-100 text-yellow-800 text-xs font-medium px-1.5 py-0.5 rounded">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                              </svg>
+                              {getPlayerRanking(pairing.pair1.player1.id)}
+                            </span>
+                          </li>
+                          <li className="text-gray-700 text-center flex items-center justify-center gap-1">
+                            {pairing.pair1.player2.name}
+                            <span className="inline-flex items-center justify-center bg-yellow-100 text-yellow-800 text-xs font-medium px-1.5 py-0.5 rounded">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                              </svg>
+                              {getPlayerRanking(pairing.pair1.player2.id)}
+                            </span>
+                          </li>
                         </ul>
                       </div>
                       <div className="bg-white p-3 rounded shadow-sm border border-gray-100">
                         <div className="text-sm font-medium text-primary-600 mb-2 text-center">Pareja 2</div>
                         <ul className="space-y-1">
-                          <li className="text-gray-700 text-center">{pairing.pair2.player1.name}</li>
-                          <li className="text-gray-700 text-center">{pairing.pair2.player2.name}</li>
+                          <li className="text-gray-700 text-center flex items-center justify-center gap-1">
+                            {pairing.pair2.player1.name}
+                            <span className="inline-flex items-center justify-center bg-yellow-100 text-yellow-800 text-xs font-medium px-1.5 py-0.5 rounded">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                              </svg>
+                              {getPlayerRanking(pairing.pair2.player1.id)}
+                            </span>
+                          </li>
+                          <li className="text-gray-700 text-center flex items-center justify-center gap-1">
+                            {pairing.pair2.player2.name}
+                            <span className="inline-flex items-center justify-center bg-yellow-100 text-yellow-800 text-xs font-medium px-1.5 py-0.5 rounded">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                              </svg>
+                              {getPlayerRanking(pairing.pair2.player2.id)}
+                            </span>
+                          </li>
                         </ul>
                       </div>
                     </div>
@@ -210,7 +258,16 @@ export default function ResultDisplay({ pairings }: ResultDisplayProps) {
               {/* Formulario de registro de resultados */}
               <MatchResultForm
                 pairing={pairings[selectedPairingIndex]}
-                onSuccess={() => {/* Manejar éxito */}}
+                onSuccess={() => {
+                  // Invalidar los rankings para que se actualicen
+                  queryClient.invalidateQueries({ queryKey: ["/api/rankings"] });
+                  // Mostrar mensaje de éxito
+                  useToast().toast({
+                    title: "Resultado guardado",
+                    description: "El resultado ha sido guardado y los rankings actualizados.",
+                    duration: 3000,
+                  });
+                }}
               />
             </>
           ) : (

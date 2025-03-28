@@ -43,13 +43,32 @@ export default function Home() {
   
   // Transform courts to courts with selection state
   useEffect(() => {
+    // Compara las canchas actuales con las que ya están en el estado
+    // para evitar actualizaciones innecesarias que causan bucles infinitos
+    if (courts.length === courtsWithSelection.length) {
+      // Si la longitud es igual, verificamos si necesitamos actualizar
+      const needsUpdate = courts.some((court, index) => 
+        court.id !== courtsWithSelection[index].id
+      );
+      
+      if (!needsUpdate) {
+        return; // No necesitamos actualizar, evitamos el bucle
+      }
+    }
+    
     // Inicializar todas las canchas como no seleccionadas al cargarlas
-    const courtsWithSelectionState = courts.map(court => ({
-      ...court,
-      selected: false
-    }));
+    const courtsWithSelectionState = courts.map(court => {
+      // Buscar si la cancha ya existe en el estado actual
+      const existingCourt = courtsWithSelection.find(c => c.id === court.id);
+      return {
+        ...court,
+        // Mantener el estado de selección si existe, de lo contrario false
+        selected: existingCourt ? existingCourt.selected : false
+      };
+    });
+    
     setCourtsWithSelection(courtsWithSelectionState);
-  }, [courts]);
+  }, [courts, courtsWithSelection]);
 
   // Add player mutation
   const addPlayerMutation = useMutation({

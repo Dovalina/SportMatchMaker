@@ -2,6 +2,15 @@ import { pgTable, text, serial, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Enumeración de roles de usuario
+export const UserRole = {
+  PLAYER: "player",
+  ADMIN: "admin",
+  SUPERADMIN: "superadmin"
+} as const;
+
+export type UserRoleType = typeof UserRole[keyof typeof UserRole];
+
 export const players = pgTable("players", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -9,6 +18,8 @@ export const players = pgTable("players", {
   phone: text("phone"),
   affiliationNumber: text("affiliation_number"),
   selected: boolean("selected").default(false),
+  role: text("role").default(UserRole.PLAYER).notNull(),
+  password: text("password"), // Para autenticación básica
 });
 
 export const courts = pgTable("courts", {
@@ -22,10 +33,23 @@ export const insertPlayerSchema = createInsertSchema(players).pick({
   phone: true,
   affiliationNumber: true,
   selected: true,
+  role: true,
+  password: true,
 });
 
 export const insertCourtSchema = createInsertSchema(courts).pick({
   name: true,
+});
+
+// Schema para lista de espera
+export const waitListPlayerSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  alias: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  affiliationNumber: z.string().nullable().optional(),
+  selected: z.boolean(),
+  role: z.string().default(UserRole.PLAYER).optional(),
 });
 
 // Pair type for frontend and API
@@ -33,18 +57,20 @@ export const pairSchema = z.object({
   player1: z.object({
     id: z.number(),
     name: z.string(),
-    alias: z.string().optional(),
-    phone: z.string().optional(),
-    affiliationNumber: z.string().optional(),
+    alias: z.string().nullable().optional(),
+    phone: z.string().nullable().optional(),
+    affiliationNumber: z.string().nullable().optional(),
     selected: z.boolean().optional(),
+    role: z.string().default(UserRole.PLAYER).optional(),
   }),
   player2: z.object({
     id: z.number(),
     name: z.string(),
-    alias: z.string().optional(),
-    phone: z.string().optional(),
-    affiliationNumber: z.string().optional(),
+    alias: z.string().nullable().optional(),
+    phone: z.string().nullable().optional(),
+    affiliationNumber: z.string().nullable().optional(),
     selected: z.boolean().optional(),
+    role: z.string().default(UserRole.PLAYER).optional(),
   }),
 });
 
@@ -94,7 +120,22 @@ export const playerRankingSchema = z.object({
   points: z.number().default(0), // Puntos acumulados
 });
 
+// Schema para juegos (agrupación de parejas por fecha)
+export const gameSchema = z.object({
+  id: z.number().optional(),
+  gameDate: z.string(),
+  courtIds: z.array(z.number()),
+  status: z.enum(["pending", "in_progress", "completed"]).default("pending"),
+  maxPlayers: z.number().optional(),
+  waitList: z.array(waitListPlayerSchema).optional(),
+});
+
+// Schema para la lista de espera
+export const waitListSchema = z.array(waitListPlayerSchema);
+
 export type CourtPairing = z.infer<typeof courtPairingSchema>;
 export type Pairings = z.infer<typeof pairingsSchema>;
 export type MatchResult = z.infer<typeof matchResultSchema>;
 export type PlayerRanking = z.infer<typeof playerRankingSchema>;
+export type WaitListPlayer = z.infer<typeof waitListPlayerSchema>;
+export type Game = z.infer<typeof gameSchema>;

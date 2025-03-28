@@ -6,7 +6,10 @@ import {
   type InsertPlayer, 
   type MatchResult, 
   type Player,
-  type PlayerRanking
+  type PlayerRanking,
+  UserRole,
+  type Game,
+  type WaitListPlayer
 } from "@shared/schema";
 
 export interface IStorage {
@@ -34,6 +37,24 @@ export interface IStorage {
   getPlayerRankings(): Promise<PlayerRanking[]>;
   updatePlayerRanking(playerId: number, data: Partial<PlayerRanking>): Promise<PlayerRanking | undefined>;
   calculateRankings(): Promise<void>; // Recalcula todos los rankings basados en los resultados de partidos
+  
+  // Autenticación y autorización
+  authenticatePlayer(name: string, password: string): Promise<Player | null>;
+  getPlayerByName(name: string): Promise<Player | undefined>;
+  hasPermission(playerId: number, requiredRole: string): Promise<boolean>;
+  
+  // Operaciones de juegos y lista de espera
+  getGames(): Promise<Game[]>;
+  getGame(id: number): Promise<Game | undefined>;
+  createGame(game: Omit<Game, 'id'>): Promise<Game>;
+  updateGame(id: number, gameData: Partial<Game>): Promise<Game | undefined>;
+  deleteGame(id: number): Promise<boolean>;
+  
+  // Lista de espera
+  getWaitList(gameId: number): Promise<WaitListPlayer[]>;
+  addToWaitList(gameId: number, playerId: number): Promise<WaitListPlayer | null>;
+  removeFromWaitList(gameId: number, playerId: number): Promise<boolean>;
+  moveFromWaitListToGame(gameId: number, playerId: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -41,23 +62,37 @@ export class MemStorage implements IStorage {
   private courts: Map<number, Court>;
   private matchResults: Map<number, MatchResult>;
   private playerRankings: Map<number, PlayerRanking>;
+  private games: Map<number, Game>;
+  private waitLists: Map<number, WaitListPlayer[]>; // key = gameId
   private playerIdCounter: number;
   private courtIdCounter: number;
   private resultIdCounter: number;
+  private gameIdCounter: number;
 
   constructor() {
     this.players = new Map();
     this.courts = new Map();
     this.matchResults = new Map();
     this.playerRankings = new Map();
+    this.games = new Map();
+    this.waitLists = new Map();
     this.playerIdCounter = 1;
     this.courtIdCounter = 1;
     this.resultIdCounter = 1;
+    this.gameIdCounter = 1;
     
     // Initialize with predefined courts
     const predefinedCourts = ["Lala", "AR", "Mochomos", "Combugas", "Casa del Vino", "Moric", "Central"];
     predefinedCourts.forEach(name => {
       this.createCourt({ name });
+    });
+    
+    // Crear usuario superadmin por defecto
+    this.createPlayer({
+      name: "Admin",
+      role: UserRole.SUPERADMIN,
+      password: "admin123", // En una implementación real, esto debería estar hasheado
+      selected: false
     });
   }
 
@@ -78,7 +113,9 @@ export class MemStorage implements IStorage {
       alias: insertPlayer.alias || null,
       phone: insertPlayer.phone || null,
       affiliationNumber: insertPlayer.affiliationNumber || null,
-      selected: insertPlayer.selected || false
+      selected: insertPlayer.selected || false,
+      role: insertPlayer.role || UserRole.PLAYER,
+      password: insertPlayer.password || null
     };
     this.players.set(id, player);
     return player;
@@ -186,6 +223,34 @@ export class MemStorage implements IStorage {
     this.playerRankings.set(playerId, updatedRanking);
     
     return updatedRanking;
+  }
+  
+  // Métodos de autenticación y autorización
+  async authenticatePlayer(name: string, password: string): Promise<Player | null> {
+    const player = await this.getPlayerByName(name);
+    
+    if (!player || player.password !== password) {
+      return null;
+    }
+    
+    return player;
+  }
+  
+  async getPlayerByName(name: string): Promise<Player | undefined> {
+    const players = Array.from(this.players.values());
+    return players.find(player => player.name === name);
+  }
+  
+  async hasPermission(playerId: number, requiredRole: string): Promise<boolean> {
+    const player = await this.getPlayer(playerId);
+    if (!player) return false;
+    
+    // Verificar jerarquía de roles
+    if (player.role === UserRole.SUPERADMIN) return true;
+    if (player.role === UserRole.ADMIN && requiredRole !== UserRole.SUPERADMIN) return true;
+    if (player.role === requiredRole) return true;
+    
+    return false;
   }
   
   async calculateRankings(): Promise<void> {
@@ -333,6 +398,99 @@ export class MemStorage implements IStorage {
       
       this.playerRankings.set(player2Id, ranking2);
     }
+  }
+  
+  // Implementación de operaciones de juegos
+  async getGames(): Promise<Game[]> {
+    return Array.from(this.games.values());
+  }
+  
+  async getGame(id: number): Promise<Game | undefined> {
+    return this.games.get(id);
+  }
+  
+  async createGame(game: Omit<Game, 'id'>): Promise<Game> {
+    const id = this.gameIdCounter++;
+    const newGame: Game = { ...game, id };
+    
+    // Inicializar lista de espera vacía
+    this.waitLists.set(id, []);
+    
+    this.games.set(id, newGame);
+    return newGame;
+  }
+  
+  async updateGame(id: number, gameData: Partial<Game>): Promise<Game | undefined> {
+    const game = this.games.get(id);
+    if (!game) return undefined;
+    
+    const updatedGame = { ...game, ...gameData, id };
+    this.games.set(id, updatedGame);
+    return updatedGame;
+  }
+  
+  async deleteGame(id: number): Promise<boolean> {
+    // Eliminar también la lista de espera asociada
+    this.waitLists.delete(id);
+    return this.games.delete(id);
+  }
+  
+  // Implementación de operaciones de lista de espera
+  async getWaitList(gameId: number): Promise<WaitListPlayer[]> {
+    const waitList = this.waitLists.get(gameId) || [];
+    return waitList;
+  }
+  
+  async addToWaitList(gameId: number, playerId: number): Promise<WaitListPlayer | null> {
+    const game = this.games.get(gameId);
+    if (!game) return null;
+    
+    const player = this.players.get(playerId);
+    if (!player) return null;
+    
+    // Verificar si el jugador ya está en la lista de espera
+    const waitList = this.waitLists.get(gameId) || [];
+    if (waitList.some(p => p.id === playerId)) return null;
+    
+    // Construir objeto de jugador en espera
+    const waitListPlayer: WaitListPlayer = {
+      id: player.id,
+      name: player.name,
+      alias: player.alias,
+      phone: player.phone,
+      affiliationNumber: player.affiliationNumber,
+      selected: player.selected === null ? false : player.selected,
+      role: player.role,
+    };
+    
+    // Actualizar lista de espera
+    waitList.push(waitListPlayer);
+    this.waitLists.set(gameId, waitList);
+    
+    return waitListPlayer;
+  }
+  
+  async removeFromWaitList(gameId: number, playerId: number): Promise<boolean> {
+    const waitList = this.waitLists.get(gameId) || [];
+    const initialLength = waitList.length;
+    
+    const filteredList = waitList.filter(p => p.id !== playerId);
+    this.waitLists.set(gameId, filteredList);
+    
+    return filteredList.length < initialLength;
+  }
+  
+  async moveFromWaitListToGame(gameId: number, playerId: number): Promise<boolean> {
+    // Esta funcionalidad requeriría más implementación en un sistema real
+    // Para este ejemplo, simplemente seleccionamos el jugador y lo quitamos de la lista de espera
+    const player = await this.getPlayer(playerId);
+    if (!player) return false;
+    
+    // Marcar el jugador como seleccionado
+    await this.updatePlayer(playerId, { selected: true });
+    
+    // Remover de la lista de espera
+    return this.removeFromWaitList(gameId, playerId);
   }
 }
 
