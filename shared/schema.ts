@@ -15,11 +15,12 @@ export const players = pgTable("players", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   alias: text("alias"),
-  phone: text("phone"),
+  phone: text("phone"), // Será usado para autenticación
   affiliationNumber: text("affiliation_number"),
   selected: boolean("selected").default(false),
   role: text("role").default(UserRole.PLAYER).notNull(),
-  password: text("password"), // Para autenticación básica
+  password: text("password"), // Solo para admin/superadmin
+  invitedBy: text("invited_by"), // ID del jugador que lo invitó
 });
 
 export const courts = pgTable("courts", {
@@ -35,6 +36,19 @@ export const insertPlayerSchema = createInsertSchema(players).pick({
   selected: true,
   role: true,
   password: true,
+  invitedBy: true,
+});
+
+// Schema para inicio de sesión por teléfono
+export const phoneLoginSchema = z.object({
+  phone: z.string().min(1, { message: "Número de teléfono es requerido" }),
+});
+
+// Schema para registro rápido por teléfono
+export const quickRegisterSchema = z.object({
+  name: z.string().min(1, { message: "Nombre es requerido" }),
+  phone: z.string().min(1, { message: "Número de teléfono es requerido" }),
+  alias: z.string().optional(),
 });
 
 export const insertCourtSchema = createInsertSchema(courts).pick({

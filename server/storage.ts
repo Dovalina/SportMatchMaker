@@ -115,7 +115,8 @@ export class MemStorage implements IStorage {
       affiliationNumber: insertPlayer.affiliationNumber || null,
       selected: insertPlayer.selected || false,
       role: insertPlayer.role || UserRole.PLAYER,
-      password: insertPlayer.password || null
+      password: insertPlayer.password || null,
+      invitedBy: insertPlayer.invitedBy || null
     };
     this.players.set(id, player);
     return player;
@@ -236,9 +237,25 @@ export class MemStorage implements IStorage {
     return player;
   }
   
+  // Autenticación por número de teléfono
+  async authenticateByPhone(phone: string): Promise<Player | null> {
+    const player = await this.getPlayerByPhone(phone);
+    
+    if (!player) {
+      return null;
+    }
+    
+    return player;
+  }
+  
   async getPlayerByName(name: string): Promise<Player | undefined> {
     const players = Array.from(this.players.values());
     return players.find(player => player.name === name);
+  }
+  
+  async getPlayerByPhone(phone: string): Promise<Player | undefined> {
+    const players = Array.from(this.players.values());
+    return players.find(player => player.phone === phone);
   }
   
   async hasPermission(playerId: number, requiredRole: string): Promise<boolean> {

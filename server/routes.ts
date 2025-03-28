@@ -59,7 +59,9 @@ const roleMiddleware = (requiredRole: string) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Ruta para autenticación
+  // Rutas de autenticación
+  
+  // Login tradicional (para admin)
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { name, password } = req.body;
@@ -78,6 +80,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(playerWithoutPassword);
     } catch (error) {
       res.status(500).json({ message: "Error en la autenticación" });
+    }
+  });
+  
+  // Login por teléfono
+  app.post("/api/auth/login-phone", async (req, res) => {
+    try {
+      const { phone } = req.body;
+      if (!phone) {
+        return res.status(400).json({ message: "Se requiere número de teléfono" });
+      }
+      
+      const player = await storage.authenticateByPhone(phone);
+      
+      if (!player) {
+        return res.status(404).json({ 
+          message: "Número de teléfono no registrado",
+          notRegistered: true
+        });
+      }
+      
+      // Enviar usuario autenticado (sin contraseña)
+      const { password: _, ...playerWithoutPassword } = player;
+      res.json(playerWithoutPassword);
+    } catch (error) {
+      res.status(500).json({ message: "Error en la autenticación" });
+    }
+  });
+  
+  // Registro rápido por teléfono
+  app.post("/api/auth/register-phone", async (req, res) => {
+    try {
+      const { name, phone, alias } = req.body;
+      if (!name || !phone) {
+        return res.status(400).json({ message: "Se requiere nombre y número de teléfono" });
+      }
+      
+      // Verificar si el teléfono ya está registrado
+      const existingPlayer = await storage.getPlayerByPhone(phone);
+      if (existingPlayer) {
+        return res.status(400).json({ message: "Este número de teléfono ya está registrado" });
+      }
+      
+      // Crear nuevo jugador
+      const newPlayer = await storage.createPlayer({
+        name,
+        phone,
+        alias: alias || null,
+        role: UserRole.PLAYER,
+        selected: false
+      });
+      
+      // Enviar usuario recién registrado
+      const { password: _, ...playerWithoutPassword } = newPlayer;
+      res.status(201).json(playerWithoutPassword);
+    } catch (error) {
+      res.status(500).json({ message: "Error al registrar usuario" });
+    }
+  });
+  
+  // Registrar invitado (solo para usuarios autenticados)
+  app.post("/api/players/invite", async (req, res) => {
+    try {
+      const { name, invitedBy, alias } = req.body;
+      
+      if (!name || !invitedBy) {
+        return res.status(400).json({ message: "Faltan datos requeridos" });
+      }
+      
+      // Verificar que el usuario que invita existe
+      const inviter = await storage.getPlayer(parseInt(invitedBy));
+      if (!inviter) {
+        return res.status(404).json({ message: "Jugador que invita no encontrado" });
+      }
+      
+      // Crear el jugador invitado
+      const displayName = `${name} (${inviter.alias || inviter.name})`;
+      
+      const newPlayer = await storage.createPlayer({
+        name: displayName,
+        alias: alias || null,
+        role: UserRole.PLAYER,
+        selected: false,
+        invitedBy: invitedBy.toString()
+      });
+      
+      res.status(201).json(newPlayer);
+    } catch (error) {
+      res.status(500).json({ message: "Error al registrar invitado" });
     }
   });
   
