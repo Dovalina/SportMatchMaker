@@ -161,8 +161,8 @@ export default function Home() {
 
   // Generate pairings mutation
   const generatePairingsMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/pairings/generate", {});
+    mutationFn: async (data: { gameDate?: string; sets?: number; selectedCourtIds?: number[] }) => {
+      const response = await apiRequest("POST", "/api/pairings/generate", data);
       return (await response.json()) as Pairings;
     },
     onSuccess: (data) => {
@@ -248,7 +248,9 @@ export default function Home() {
           onRemoveCourt={(id) => removeCourtMutation.mutate(id)}
           onToggleCourtSelection={toggleCourtSelection}
           courtsWithSelection={courtsWithSelection}
-          onGeneratePairings={() => generatePairingsMutation.mutate()}
+          onGeneratePairings={(gameDate, sets, selectedCourtIds) => 
+            generatePairingsMutation.mutate({ gameDate, sets, selectedCourtIds })
+          }
           canGeneratePairings={canGeneratePairings()}
           validationMessage={getValidationMessage()}
         />

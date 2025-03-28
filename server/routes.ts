@@ -141,36 +141,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate pairings
   app.post("/api/pairings/generate", async (req, res) => {
     try {
+      // Obtener parámetros de la solicitud
+      const { gameDate, sets = 1, selectedCourtIds = [] } = req.body;
+      
       const allPlayers = await storage.getPlayers();
       const selectedPlayers = await storage.getSelectedPlayers();
       const players = selectedPlayers.length > 0 ? selectedPlayers : allPlayers;
-      const courts = await storage.getCourts();
       
-      // Validation for pairings
-      if (players.length < courts.length * 4) {
+      // Filtrar canchas basado en la selección si hay IDs proporcionados
+      let selectedCourts = [];
+      if (selectedCourtIds && selectedCourtIds.length > 0) {
+        const allCourts = await storage.getCourts();
+        selectedCourts = allCourts.filter(court => selectedCourtIds.includes(court.id));
+      } else {
+        selectedCourts = await storage.getCourts();
+      }
+      
+      // Validación para emparejamientos
+      if (players.length < selectedCourts.length * 4) {
         return res.status(400).json({ 
-          message: `Need at least ${courts.length * 4} players for ${courts.length} courts` 
+          message: `Se necesitan al menos ${selectedCourts.length * 4} jugadores para ${selectedCourts.length} canchas` 
         });
       }
       
       if (players.length % 4 !== 0) {
         return res.status(400).json({ 
-          message: `Need a multiple of 4 players for even pairings (currently ${players.length})` 
+          message: `Se necesita un múltiplo de 4 jugadores para emparejamientos equitativos (actualmente ${players.length})` 
         });
       }
       
-      // Shuffle players
+      // Mezclar jugadores
       const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
       const pairings = [];
       
-      // Create pairs for each court
-      for (let i = 0; i < courts.length && i * 4 < shuffledPlayers.length; i++) {
+      // Crear parejas para cada cancha
+      for (let i = 0; i < selectedCourts.length && i * 4 < shuffledPlayers.length; i++) {
         const startIndex = i * 4;
         const courtPlayers = shuffledPlayers.slice(startIndex, startIndex + 4);
         
         const courtPairing = {
-          courtId: courts[i].id,
-          courtName: courts[i].name,
+          courtId: selectedCourts[i].id,
+          courtName: selectedCourts[i].name,
           pair1: {
             player1: courtPlayers[0],
             player2: courtPlayers[1]
@@ -178,25 +189,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
           pair2: {
             player1: courtPlayers[2],
             player2: courtPlayers[3]
-          }
+          },
+          sets: Number(sets) || 1,
+          gameDate: gameDate || new Date().toISOString().split('T')[0]
         };
         
         pairings.push(courtPairing);
       }
       
-      // Validate the response with our schema
+      // Validar la respuesta con nuestro schema
       const validatedPairings = pairingsSchema.parse(pairings);
       res.json(validatedPairings);
       
     } catch (error) {
       if (error instanceof z.ZodError) {
-        res.status(400).json({ message: "Invalid data format", errors: error.errors });
+        res.status(400).json({ message: "Formato de datos inválido", errors: error.errors });
       } else {
-        res.status(500).json({ message: "Failed to generate pairings" });
+        console.error("Error al generar emparejamientos:", error);
+        res.status(500).json({ message: "Error al generar emparejamientos" });
       }
     }
   });
 
+  // Rutas para resultados de partidos
+  app.get("/api/match-results", async (req, res) => {
+    try {
+      const { gameDate } = req.query;
+      const results = await storage.getMatchResults(gameDate as string);
+      res.json(results);
+    } catch (error) {
+      res.status(500).json({ message: "Error al obtener resultados" });
+    }
+  });
+  
+  app.post("/api/match-results", async (req, res) => {
+    try {
+      const result = req.body;
+      const savedResult = await storage.saveMatchResult(result);
+      res.status(201).json(savedResult);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Datos de resultado inválidos", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Error al guardar resultado" });
+      }
+    }
+  });
+  
+  app.patch("/api/match-results/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID de resultado inválido" });
+      }
+      
+      const result = req.body;
+      const updatedResult = await storage.updateMatchResult(id, result);
+      
+      if (updatedResult) {
+        res.json(updatedResult);
+      } else {
+        res.status(404).json({ message: "Resultado no encontrado" });
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Datos de resultado inválidos", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Error al actualizar resultado" });
+      }
+    }
+  });
+  
+  // Rutas para rankings
+  app.get("/api/rankings", async (req, res) => {
+    try {
+      // Asegurarse de que los rankings estén actualizados
+      await storage.calculateRankings();
+      
+      // Obtener rankings
+      const rankings = await storage.getPlayerRankings();
+      res.json(rankings);
+    } catch (error) {
+      res.status(500).json({ message: "Error al obtener rankings" });
+    }
+  });
+  
   const httpServer = createServer(app);
   return httpServer;
 }

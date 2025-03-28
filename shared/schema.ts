@@ -66,5 +66,35 @@ export type InsertCourt = z.infer<typeof insertCourtSchema>;
 export type Player = typeof players.$inferSelect;
 export type Court = typeof courts.$inferSelect;
 export type Pair = z.infer<typeof pairSchema>;
+// Schema para los resultados de partidos
+export const matchResultSchema = z.object({
+  id: z.number().optional(),
+  pairingId: z.number(), // Identificador único para el emparejamiento
+  gameDate: z.string(),
+  setNumber: z.number().min(1),
+  pair1Score: z.number().min(0),
+  pair2Score: z.number().min(0),
+  winner: z.enum(["pair1", "pair2"]),
+  completed: z.boolean().default(false),
+  // Referencias a las parejas
+  pair1: pairSchema,
+  pair2: pairSchema,
+  courtId: z.number(),
+  courtName: z.string(),
+});
+
+// Schema para los rankings de jugadores
+export const playerRankingSchema = z.object({
+  playerId: z.number(),
+  playerName: z.string(),
+  gamesPlayed: z.number().default(0),
+  gamesWon: z.number().default(0),
+  setsPlayed: z.number().default(0),
+  setsWon: z.number().default(0),
+  points: z.number().default(0), // Puntos acumulados
+});
+
 export type CourtPairing = z.infer<typeof courtPairingSchema>;
 export type Pairings = z.infer<typeof pairingsSchema>;
+export type MatchResult = z.infer<typeof matchResultSchema>;
+export type PlayerRanking = z.infer<typeof playerRankingSchema>;

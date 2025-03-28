@@ -1,4 +1,13 @@
-import { courts, players, type Court, type InsertCourt, type InsertPlayer, type Player } from "@shared/schema";
+import { 
+  courts, 
+  players, 
+  type Court, 
+  type InsertCourt, 
+  type InsertPlayer, 
+  type MatchResult, 
+  type Player,
+  type PlayerRanking
+} from "@shared/schema";
 
 export interface IStorage {
   // Player operations
@@ -15,19 +24,35 @@ export interface IStorage {
   getCourt(id: number): Promise<Court | undefined>;
   createCourt(court: InsertCourt): Promise<Court>;
   deleteCourt(id: number): Promise<boolean>;
+  
+  // Match results operations
+  getMatchResults(gameDate?: string): Promise<MatchResult[]>;
+  saveMatchResult(result: MatchResult): Promise<MatchResult>;
+  updateMatchResult(id: number, result: Partial<MatchResult>): Promise<MatchResult | undefined>;
+  
+  // Ranking operations
+  getPlayerRankings(): Promise<PlayerRanking[]>;
+  updatePlayerRanking(playerId: number, data: Partial<PlayerRanking>): Promise<PlayerRanking | undefined>;
+  calculateRankings(): Promise<void>; // Recalcula todos los rankings basados en los resultados de partidos
 }
 
 export class MemStorage implements IStorage {
   private players: Map<number, Player>;
   private courts: Map<number, Court>;
+  private matchResults: Map<number, MatchResult>;
+  private playerRankings: Map<number, PlayerRanking>;
   private playerIdCounter: number;
   private courtIdCounter: number;
+  private resultIdCounter: number;
 
   constructor() {
     this.players = new Map();
     this.courts = new Map();
+    this.matchResults = new Map();
+    this.playerRankings = new Map();
     this.playerIdCounter = 1;
     this.courtIdCounter = 1;
+    this.resultIdCounter = 1;
     
     // Initialize with predefined courts
     const predefinedCourts = ["Lala", "AR", "Mochomos", "Combugas", "Casa del Vino", "Moric", "Central"];
@@ -112,6 +137,133 @@ export class MemStorage implements IStorage {
 
   async deleteCourt(id: number): Promise<boolean> {
     return this.courts.delete(id);
+  }
+  
+  // Match results operations
+  async getMatchResults(gameDate?: string): Promise<MatchResult[]> {
+    const results = Array.from(this.matchResults.values());
+    if (gameDate) {
+      return results.filter(result => result.gameDate === gameDate);
+    }
+    return results;
+  }
+  
+  async saveMatchResult(result: MatchResult): Promise<MatchResult> {
+    const id = this.resultIdCounter++;
+    const newResult = { ...result, id };
+    this.matchResults.set(id, newResult);
+    
+    // Calcular rankings después de guardar el resultado
+    await this.calculateRankings();
+    
+    return newResult;
+  }
+  
+  async updateMatchResult(id: number, result: Partial<MatchResult>): Promise<MatchResult | undefined> {
+    const existingResult = this.matchResults.get(id);
+    if (!existingResult) return undefined;
+    
+    const updatedResult = { ...existingResult, ...result, id };
+    this.matchResults.set(id, updatedResult);
+    
+    // Recalcular rankings después de actualizar el resultado
+    await this.calculateRankings();
+    
+    return updatedResult;
+  }
+  
+  // Ranking operations
+  async getPlayerRankings(): Promise<PlayerRanking[]> {
+    return Array.from(this.playerRankings.values())
+      .sort((a, b) => b.points - a.points); // Ordenar por puntos en orden descendente
+  }
+  
+  async updatePlayerRanking(playerId: number, data: Partial<PlayerRanking>): Promise<PlayerRanking | undefined> {
+    const existingRanking = this.playerRankings.get(playerId);
+    if (!existingRanking) return undefined;
+    
+    const updatedRanking = { ...existingRanking, ...data };
+    this.playerRankings.set(playerId, updatedRanking);
+    
+    return updatedRanking;
+  }
+  
+  async calculateRankings(): Promise<void> {
+    // Reiniciar rankings
+    this.playerRankings.clear();
+    
+    // Inicializar rankings para todos los jugadores
+    const allPlayers = await this.getPlayers();
+    allPlayers.forEach(player => {
+      this.playerRankings.set(player.id, {
+        playerId: player.id,
+        playerName: player.name,
+        gamesPlayed: 0,
+        gamesWon: 0,
+        setsPlayed: 0,
+        setsWon: 0,
+        points: 0
+      });
+    });
+    
+    // Procesar todos los resultados
+    const results = Array.from(this.matchResults.values());
+    
+    for (const result of results) {
+      if (!result.completed) continue;
+      
+      const player1Id = result.pair1.player1.id;
+      const player2Id = result.pair1.player2.id;
+      const player3Id = result.pair2.player1.id;
+      const player4Id = result.pair2.player2.id;
+      
+      // Actualizar estadísticas para el par 1
+      if (result.winner === 'pair1') {
+        this.updatePairStats(player1Id, player2Id, true, result.setNumber);
+        this.updatePairStats(player3Id, player4Id, false, result.setNumber);
+      } else {
+        this.updatePairStats(player1Id, player2Id, false, result.setNumber);
+        this.updatePairStats(player3Id, player4Id, true, result.setNumber);
+      }
+    }
+  }
+  
+  // Método auxiliar para actualizar estadísticas de un par de jugadores
+  private updatePairStats(player1Id: number, player2Id: number, isWinner: boolean, setCount: number): void {
+    const ranking1 = this.playerRankings.get(player1Id);
+    const ranking2 = this.playerRankings.get(player2Id);
+    
+    if (ranking1) {
+      // Actualizar estadísticas del jugador 1
+      ranking1.gamesPlayed += 1;
+      ranking1.setsPlayed += setCount;
+      
+      if (isWinner) {
+        ranking1.gamesWon += 1;
+        ranking1.setsWon += setCount;
+        ranking1.points += 3; // 3 puntos por victoria
+      } else {
+        ranking1.points += 1; // 1 punto por participación
+      }
+      
+      this.playerRankings.set(player1Id, ranking1);
+    }
+    
+    if (ranking2) {
+      // Actualizar estadísticas del jugador 2
+      ranking2.gamesPlayed += 1;
+      ranking2.setsPlayed += setCount;
+      
+      if (isWinner) {
+        ranking2.gamesWon += 1;
+        ranking2.setsWon += setCount;
+        ranking2.points += 3; // 3 puntos por victoria
+      } else {
+        ranking2.points += 1; // 1 punto por participación
+      }
+      
+      this.playerRankings.set(player2Id, ranking2);
+    }
   }
 }
 
