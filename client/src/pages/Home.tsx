@@ -65,10 +65,11 @@ export default function Home() {
     },
   });
 
-  // Add court mutation
+  // Add court mutation (not used anymore - courts are predefined)
   const addCourtMutation = useMutation({
     mutationFn: async () => {
-      const name = `Cancha ${courts.length + 1}`;
+      // This is no longer used as courts are predefined
+      const name = "Custom Court";
       await apiRequest("POST", "/api/courts", { name });
     },
     onSuccess: () => {

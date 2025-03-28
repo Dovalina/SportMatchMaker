@@ -26,8 +26,11 @@ export class MemStorage implements IStorage {
     this.playerIdCounter = 1;
     this.courtIdCounter = 1;
     
-    // Initialize with one court
-    this.createCourt({ name: "Cancha 1" });
+    // Initialize with predefined courts
+    const predefinedCourts = ["Lala", "AR", "Mochomos", "Combugas", "Casa del Vino", "Moric", "Central"];
+    predefinedCourts.forEach(name => {
+      this.createCourt({ name });
+    });
   }
 
   // Player operations

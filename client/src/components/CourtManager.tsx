@@ -34,15 +34,6 @@ export default function CourtManager({
       <CardContent className="p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-medium text-gray-900">Canchas</h2>
-          <Button
-            onClick={onAddCourt}
-            disabled={isLoading}
-            variant="outline"
-            className="text-primary-700 bg-primary-100 hover:bg-primary-200 border-transparent"
-          >
-            <PlusCircle className="h-5 w-5 mr-1" />
-            Agregar Cancha
-          </Button>
         </div>
         
         {/* Courts Container */}

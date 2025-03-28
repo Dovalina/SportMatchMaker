@@ -13,7 +13,7 @@ export default function Header({ onReset }: HeaderProps) {
         <div className="flex justify-between h-16 items-center">
           <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
             <Users className="h-6 w-6 text-primary-600" />
-            Pairing App
+            Emparejador de Canchas
           </h1>
           
           <AlertDialog>
