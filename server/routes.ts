@@ -240,6 +240,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Promover a un jugador a rol de admin (requiere ser admin)
+  app.post("/api/players/:id/promote", authMiddleware, roleMiddleware(UserRole.ADMIN), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID de jugador inválido" });
+      }
+      
+      // Verificar si el jugador existe
+      const player = await storage.getPlayer(id);
+      if (!player) {
+        return res.status(404).json({ message: "Jugador no encontrado" });
+      }
+      
+      // Actualizar el rol del jugador a ADMIN
+      const updatedPlayer = await storage.updatePlayer(id, { role: UserRole.ADMIN });
+      
+      // Verificar que se haya actualizado correctamente
+      if (!updatedPlayer) {
+        return res.status(500).json({ message: "Error al promover jugador" });
+      }
+      
+      res.json({ 
+        message: "Jugador promovido a administrador exitosamente",
+        player: updatedPlayer
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Error al promover jugador" });
+    }
+  });
+  
   // Toggle player selection
   app.post("/api/players/:id/toggle-selection", async (req, res) => {
     try {
@@ -531,7 +562,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Crear juego (protegido, solo admin)
   app.post("/api/games", authMiddleware, roleMiddleware(UserRole.ADMIN), async (req, res) => {
     try {
-      const gameData = gameSchema.omit({ id: true }).parse(req.body);
+      const formData = req.body;
+      
+      // Formatear datos para el esquema
+      const gameData = {
+        gameDate: formData.date ? new Date(formData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        date: formData.date ? new Date(formData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        courtIds: formData.courtIds || [],
+        setsPerMatch: formData.setsPerMatch || 3,
+        description: formData.description || "",
+        status: "pending",
+        playerIds: []
+      };
       
       // Validar que las canchas existan
       const courts = await Promise.all(
@@ -557,6 +599,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         res.status(400).json({ message: "Datos de juego inválidos", errors: error.errors });
       } else {
+        console.error("Error al crear juego:", error);
         res.status(500).json({ message: "Error al crear juego" });
       }
     }
@@ -786,9 +829,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Crear un juego para manejar esto
         const gameData = {
           gameDate: gameDate || new Date().toISOString().split('T')[0],
+          date: gameDate || new Date().toISOString().split('T')[0],
           courtIds: selectedCourts.map(c => c.id),
           status: "pending" as const,
-          maxPlayers: selectedCourts.length * 4
+          maxPlayers: selectedCourts.length * 4,
+          playerIds: [],
+          setsPerMatch: Number(sets) || 3
         };
         
         const game = await storage.createGame(gameData);

@@ -138,10 +138,14 @@ export const playerRankingSchema = z.object({
 export const gameSchema = z.object({
   id: z.number().optional(),
   gameDate: z.string(),
+  date: z.string().optional(), // campo adicional para compatibilidad
   courtIds: z.array(z.number()),
   status: z.enum(["pending", "in_progress", "completed"]).default("pending"),
   maxPlayers: z.number().optional(),
   waitList: z.array(waitListPlayerSchema).optional(),
+  playerIds: z.array(z.number()).default([]), // IDs de jugadores seleccionados
+  setsPerMatch: z.number().default(3), // Número de sets por partido
+  description: z.string().optional(), // Descripción opcional
 });
 
 // Schema para la lista de espera

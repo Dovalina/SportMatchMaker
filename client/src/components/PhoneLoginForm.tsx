@@ -250,7 +250,14 @@ export default function PhoneLoginForm({ onSuccess }: PhoneLoginFormProps) {
               Si es su primera vez, se le pedirá que se registre
             </p>
             <p className="text-sm text-muted-foreground">
-              <Button variant="link" className="p-0 h-auto" onClick={() => {}}>
+              <Button 
+                variant="link" 
+                className="p-0 h-auto" 
+                onClick={() => {
+                  loginForm.setValue("phone", "123456789");
+                  loginForm.handleSubmit(onLoginSubmit)();
+                }}
+              >
                 Entrar como administrador
               </Button>
             </p>
