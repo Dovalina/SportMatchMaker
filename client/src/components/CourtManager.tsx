@@ -147,10 +147,10 @@ export default function CourtManager({
                             field.onChange(value < 3 ? 3 : value);
                           }}
                         />
-                        <FormDescription className="text-xs text-gray-500">
-                          Mínimo 3 sets por rol
-                        </FormDescription>
                       </FormControl>
+                      <FormDescription className="text-xs text-gray-500">
+                        Mínimo 3 sets por rol
+                      </FormDescription>
                     </FormItem>
                   )}
                 />
