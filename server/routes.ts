@@ -10,6 +10,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const players = await storage.getPlayers();
     res.json(players);
   });
+  
+  // Get selected players (Colocada antes de la ruta con id param)
+  app.get("/api/players/selected", async (req, res) => {
+    try {
+      const selectedPlayers = await storage.getSelectedPlayers();
+      res.json(selectedPlayers);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get selected players" });
+    }
+  });
 
   app.post("/api/players", async (req, res) => {
     try {
@@ -36,6 +46,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } else {
       res.status(404).json({ message: "Player not found" });
+    }
+  });
+  
+  // Update a player
+  app.patch("/api/players/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid player ID" });
+      }
+      
+      const playerData = req.body;
+      const updatedPlayer = await storage.updatePlayer(id, playerData);
+      
+      if (updatedPlayer) {
+        res.json(updatedPlayer);
+      } else {
+        res.status(404).json({ message: "Player not found" });
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid player data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update player" });
+      }
+    }
+  });
+  
+  // Toggle player selection
+  app.post("/api/players/:id/toggle-selection", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid player ID" });
+      }
+      
+      const updatedPlayer = await storage.togglePlayerSelection(id);
+      
+      if (updatedPlayer) {
+        res.json(updatedPlayer);
+      } else {
+        res.status(404).json({ message: "Player not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Failed to toggle player selection" });
     }
   });
 
@@ -86,7 +141,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate pairings
   app.post("/api/pairings/generate", async (req, res) => {
     try {
-      const players = await storage.getPlayers();
+      const allPlayers = await storage.getPlayers();
+      const selectedPlayers = await storage.getSelectedPlayers();
+      const players = selectedPlayers.length > 0 ? selectedPlayers : allPlayers;
       const courts = await storage.getCourts();
       
       // Validation for pairings

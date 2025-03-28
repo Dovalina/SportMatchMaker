@@ -5,6 +5,9 @@ export interface IStorage {
   getPlayers(): Promise<Player[]>;
   getPlayer(id: number): Promise<Player | undefined>;
   createPlayer(player: InsertPlayer): Promise<Player>;
+  updatePlayer(id: number, playerData: Partial<InsertPlayer>): Promise<Player | undefined>;
+  togglePlayerSelection(id: number): Promise<Player | undefined>;
+  getSelectedPlayers(): Promise<Player[]>;
   deletePlayer(id: number): Promise<boolean>;
   
   // Court operations
@@ -44,9 +47,47 @@ export class MemStorage implements IStorage {
 
   async createPlayer(insertPlayer: InsertPlayer): Promise<Player> {
     const id = this.playerIdCounter++;
-    const player: Player = { ...insertPlayer, id };
+    const player: Player = { 
+      ...insertPlayer, 
+      id,
+      alias: insertPlayer.alias || null,
+      phone: insertPlayer.phone || null,
+      affiliationNumber: insertPlayer.affiliationNumber || null,
+      selected: insertPlayer.selected || false
+    };
     this.players.set(id, player);
     return player;
+  }
+
+  async updatePlayer(id: number, playerData: Partial<InsertPlayer>): Promise<Player | undefined> {
+    const player = this.players.get(id);
+    if (!player) return undefined;
+
+    const updatedPlayer: Player = {
+      ...player,
+      ...playerData,
+      id
+    };
+
+    this.players.set(id, updatedPlayer);
+    return updatedPlayer;
+  }
+
+  async togglePlayerSelection(id: number): Promise<Player | undefined> {
+    const player = this.players.get(id);
+    if (!player) return undefined;
+
+    const updatedPlayer: Player = {
+      ...player,
+      selected: player.selected === null ? true : !player.selected
+    };
+
+    this.players.set(id, updatedPlayer);
+    return updatedPlayer;
+  }
+
+  async getSelectedPlayers(): Promise<Player[]> {
+    return Array.from(this.players.values()).filter(player => player.selected);
   }
 
   async deletePlayer(id: number): Promise<boolean> {

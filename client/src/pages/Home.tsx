@@ -50,8 +50,14 @@ export default function Home() {
 
   // Add player mutation
   const addPlayerMutation = useMutation({
-    mutationFn: async (name: string) => {
-      await apiRequest("POST", "/api/players", { name });
+    mutationFn: async (data: string | { name: string; playerData?: Partial<Player> }) => {
+      // Si es solo un string, consideramos que es el nombre
+      if (typeof data === 'string') {
+        await apiRequest("POST", "/api/players", { name: data });
+      } else {
+        const { name, playerData = {} } = data;
+        await apiRequest("POST", "/api/players", { name, ...playerData });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/players"] });
@@ -59,6 +65,24 @@ export default function Home() {
     onError: (error) => {
       toast({
         title: "Error al agregar jugador",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Toggle player selection mutation
+  const togglePlayerSelectionMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest("POST", `/api/players/${id}/toggle-selection`, {});
+      return await response.json() as Player;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/players"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error al seleccionar jugador",
         description: error.message,
         variant: "destructive",
       });
@@ -207,8 +231,11 @@ export default function Home() {
         <PlayerInput
           players={players}
           isLoading={isLoadingPlayers}
-          onAddPlayer={(name) => addPlayerMutation.mutate(name)}
+          onAddPlayer={(name, playerData) => 
+            addPlayerMutation.mutate({ name, playerData })
+          }
           onRemovePlayer={(id) => removePlayerMutation.mutate(id)}
+          onTogglePlayerSelection={(id) => togglePlayerSelectionMutation.mutate(id)}
         />
 
         <CourtManager

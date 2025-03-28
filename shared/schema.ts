@@ -5,6 +5,10 @@ import { z } from "zod";
 export const players = pgTable("players", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  alias: text("alias"),
+  phone: text("phone"),
+  affiliationNumber: text("affiliation_number"),
+  selected: boolean("selected").default(false),
 });
 
 export const courts = pgTable("courts", {
@@ -14,6 +18,10 @@ export const courts = pgTable("courts", {
 
 export const insertPlayerSchema = createInsertSchema(players).pick({
   name: true,
+  alias: true,
+  phone: true,
+  affiliationNumber: true,
+  selected: true,
 });
 
 export const insertCourtSchema = createInsertSchema(courts).pick({
@@ -25,10 +33,18 @@ export const pairSchema = z.object({
   player1: z.object({
     id: z.number(),
     name: z.string(),
+    alias: z.string().optional(),
+    phone: z.string().optional(),
+    affiliationNumber: z.string().optional(),
+    selected: z.boolean().optional(),
   }),
   player2: z.object({
     id: z.number(),
     name: z.string(),
+    alias: z.string().optional(),
+    phone: z.string().optional(),
+    affiliationNumber: z.string().optional(),
+    selected: z.boolean().optional(),
   }),
 });
 
