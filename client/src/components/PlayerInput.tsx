@@ -35,13 +35,13 @@ export default function PlayerInput({
   };
 
   return (
-    <Card className="bg-white shadow rounded-lg mb-6">
+    <Card className="bg-white shadow-md rounded-lg mb-6 border-t-4 border-[var(--color-primary)]">
       <CardContent className="p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Agregar Jugadores</h2>
+        <h2 className="text-xl font-medium text-[var(--color-dark)] mb-4">Agregar Jugadores</h2>
         
         <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4">
           <div className="flex-grow">
-            <label htmlFor="playerName" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="playerName" className="block text-sm font-medium text-[var(--color-dark)]">
               Nombre del Jugador
             </label>
             <div className="mt-1 flex rounded-md shadow-sm">
@@ -51,7 +51,7 @@ export default function PlayerInput({
                 onChange={(e) => setPlayerName(e.target.value)}
                 onKeyUp={handleKeyPress}
                 placeholder="Ej. Juan Pérez"
-                className="focus:ring-primary-500 focus:border-primary-500 flex-grow"
+                className="focus-visible:ring-[var(--color-primary)] flex-grow"
                 disabled={isLoading}
               />
             </div>
@@ -60,7 +60,7 @@ export default function PlayerInput({
             <Button
               onClick={handleAddPlayer}
               disabled={isLoading || !playerName.trim()}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto bg-[var(--color-primary)] text-[var(--color-dark)] hover:bg-[var(--color-primary)]/90 font-medium"
             >
               <PlusCircle className="h-5 w-5 mr-2" />
               Agregar Jugador
@@ -70,7 +70,7 @@ export default function PlayerInput({
         
         {/* Player List */}
         <div className="mt-6">
-          <h3 className="text-sm font-medium text-gray-700 mb-2">Jugadores Actuales</h3>
+          <h3 className="text-sm font-medium text-[var(--color-dark)] mb-2">Jugadores Actuales</h3>
           <div className="flex flex-wrap gap-2">
             {players.length === 0 && !isLoading && (
               <p className="text-sm text-gray-500">No hay jugadores agregados</p>

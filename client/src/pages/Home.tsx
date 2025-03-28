@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import PlayerInput from "@/components/PlayerInput";
 import CourtManager from "@/components/CourtManager";
 import ResultDisplay from "@/components/ResultDisplay";
@@ -145,10 +146,10 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col">
       <Header onReset={handleReset} />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow">
         <PlayerInput
           players={players}
           isLoading={isLoadingPlayers}
@@ -171,6 +172,8 @@ export default function Home() {
 
         <ResultDisplay pairings={pairings} />
       </main>
+      
+      <Footer />
     </div>
   );
 }

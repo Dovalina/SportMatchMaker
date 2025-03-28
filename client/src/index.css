@@ -3,11 +3,38 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --color-primary: #97d700;
+    --color-dark: #101820;
+    --color-white: #ffffff;
+    --font-krona: 'Krona One', sans-serif;
+  }
+  
   * {
     @apply border-border;
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply bg-[var(--color-white)] text-[var(--color-dark)];
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-krona);
+  }
+  
+  .btn-primary {
+    @apply bg-[var(--color-primary)] text-[var(--color-dark)] hover:bg-[var(--color-primary)]/90;
+  }
+  
+  .bg-dark {
+    @apply bg-[var(--color-dark)];
+  }
+  
+  .text-primary {
+    @apply text-[var(--color-primary)];
+  }
+  
+  .border-primary {
+    @apply border-[var(--color-primary)];
   }
 }
