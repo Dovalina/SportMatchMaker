@@ -180,22 +180,32 @@ export default function Home() {
   // Generate pairings mutation
   const generatePairingsMutation = useMutation({
     mutationFn: async (data: { gameDate?: string; sets?: number; selectedCourtIds?: number[] }) => {
-      const response = await apiRequest("/api/pairings/generate", {
-        method: "POST",
-        body: JSON.stringify(data)
-      });
-      return (await response.json()) as Pairings;
+      try {
+        const response = await apiRequest("/api/pairings/generate", {
+          method: "POST",
+          body: JSON.stringify(data)
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Error al generar el rol de juegos");
+        }
+        
+        return (await response.json()) as Pairings;
+      } catch (error: any) {
+        throw new Error(error.message || "Error al generar el rol de juegos");
+      }
     },
     onSuccess: (data) => {
       setPairings(data);
       toast({
-        title: "¡Parejas generadas!",
+        title: "¡Rol de juegos generado!",
         description: "Las parejas han sido asignadas aleatoriamente a las canchas",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
-        title: "Error al generar parejas",
+        title: "Error al generar rol de juegos",
         description: error.message,
         variant: "destructive",
       });

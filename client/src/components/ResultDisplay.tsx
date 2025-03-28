@@ -128,7 +128,7 @@ export default function ResultDisplay({ pairings }: ResultDisplayProps) {
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="view" className="flex items-center gap-1">
                 <ClipboardList className="h-4 w-4" />
-                Ver parejas
+                Rol de juegos
               </TabsTrigger>
               <TabsTrigger value="results" className="flex items-center gap-1">
                 <Trophy className="h-4 w-4" />
@@ -142,13 +142,15 @@ export default function ResultDisplay({ pairings }: ResultDisplayProps) {
           <div ref={resultsRef} className="space-y-4 bg-white p-4 rounded-lg">
             {pairings.length === 0 ? (
               <div className="flex items-center justify-center p-8 text-gray-500">
-                Haz clic en "Generar Parejas" para crear emparejamientos aleatorios
+                Haz clic en "Generar Parejas" para crear el rol de juegos
               </div>
             ) : (
               <>
                 <div className="text-center mb-4">
-                  <h3 className="text-xl font-bold text-primary-700">Resultados de Emparejamientos</h3>
-                  <p className="text-sm text-gray-500">{new Date().toLocaleDateString()}</p>
+                  <h3 className="text-xl font-bold text-primary-700">Rol de Juegos</h3>
+                  <p className="text-sm text-gray-500">
+                    {pairings[0].gameDate ? new Date(pairings[0].gameDate).toLocaleDateString() : new Date().toLocaleDateString()}
+                  </p>
                 </div>
                 
                 {pairings.map((pairing) => (

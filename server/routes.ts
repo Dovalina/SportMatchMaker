@@ -148,19 +148,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const selectedPlayers = await storage.getSelectedPlayers();
       const players = selectedPlayers.length > 0 ? selectedPlayers : allPlayers;
       
-      // Filtrar canchas basado en la selección si hay IDs proporcionados
-      let selectedCourts = [];
-      if (selectedCourtIds && selectedCourtIds.length > 0) {
-        const allCourts = await storage.getCourts();
-        selectedCourts = allCourts.filter(court => selectedCourtIds.includes(court.id));
-      } else {
-        selectedCourts = await storage.getCourts();
-      }
-      
-      // Validación para emparejamientos
-      if (players.length < selectedCourts.length * 4) {
+      // Validación básica de jugadores
+      if (players.length < 4) {
         return res.status(400).json({ 
-          message: `Se necesitan al menos ${selectedCourts.length * 4} jugadores para ${selectedCourts.length} canchas` 
+          message: "Se necesitan al menos 4 jugadores para generar parejas" 
         });
       }
       
@@ -170,7 +161,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Mezclar jugadores
+      // Calculamos cuántas canchas necesitamos
+      const requiredCourts = Math.floor(players.length / 4);
+      
+      // Obtener todas las canchas
+      const allCourts = await storage.getCourts();
+      
+      // Filtrar canchas según selección o usar todas disponibles
+      let availableCourts = [];
+      if (selectedCourtIds && selectedCourtIds.length > 0) {
+        // Usar canchas seleccionadas
+        availableCourts = allCourts.filter(court => selectedCourtIds.includes(court.id));
+      } else {
+        // Usar todas las canchas disponibles
+        availableCourts = allCourts;
+      }
+      
+      // Verificar si tenemos suficientes canchas
+      if (availableCourts.length < requiredCourts) {
+        return res.status(400).json({ 
+          message: `No hay suficientes canchas (${availableCourts.length}) para los jugadores seleccionados (${players.length}). Se necesitan ${requiredCourts} canchas.` 
+        });
+      }
+      
+      // Limitamos las canchas a las necesarias
+      const selectedCourts = availableCourts.slice(0, requiredCourts);
+      
+      // Mezclar jugadores para aleatorizar
       const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
       const pairings = [];
       
@@ -190,7 +207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             player1: courtPlayers[2],
             player2: courtPlayers[3]
           },
-          sets: Number(sets) || 1,
+          sets: Number(sets) || 3, // Valor por defecto de 3 sets
           gameDate: gameDate || new Date().toISOString().split('T')[0]
         };
         

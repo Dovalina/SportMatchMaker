@@ -188,13 +188,25 @@ export default function CourtManager({
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                       </svg>
-                      Generar Parejas
+                      Generar Rol de Juegos
                     </>
                   )}
                 </Button>
               </div>
             </form>
           </Form>
+        </div>
+        
+        {/* Instrucciones adicionales */}
+        <div className="mt-6 text-sm text-gray-600 border-t border-gray-200 pt-4">
+          <h3 className="font-medium text-gray-900 mb-2">Cómo generar rol de juegos:</h3>
+          <ol className="list-decimal pl-5 space-y-1">
+            <li>Selecciona los jugadores en la pestaña "Jugadores"</li>
+            <li>Agrega las canchas necesarias (4 jugadores por cancha)</li>
+            <li>Configura la fecha del juego y el número de sets</li>
+            <li>Haz clic en "Generar Rol de Juegos" para crear los emparejamientos</li>
+          </ol>
+          <p className="mt-2 italic">Nota: Se utilizará el número mínimo de canchas necesarias para acomodar a todos los jugadores seleccionados.</p>
         </div>
       </CardContent>
     </Card>
