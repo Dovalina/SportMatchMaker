@@ -12,6 +12,8 @@ interface CourtManagerProps {
   isGenerating: boolean;
   onAddCourt: () => void;
   onRemoveCourt: (id: number) => void;
+  onToggleCourtSelection?: (id: number) => void;
+  courtsWithSelection?: Array<Court & { selected: boolean }>;
   onGeneratePairings: () => void;
   canGeneratePairings: boolean;
   validationMessage: string;
@@ -25,6 +27,8 @@ export default function CourtManager({
   isGenerating,
   onAddCourt,
   onRemoveCourt,
+  onToggleCourtSelection,
+  courtsWithSelection = [],
   onGeneratePairings,
   canGeneratePairings,
   validationMessage
@@ -47,14 +51,18 @@ export default function CourtManager({
               No hay canchas agregadas
             </div>
           ) : (
-            courts.map((court) => {
+            (courtsWithSelection.length > 0 ? courtsWithSelection : courts).map((court) => {
               const courtPairing = pairings.find(p => p.courtId === court.id);
+              const isSelected = 'selected' in court ? Boolean(court.selected) : false;
+              
               return (
                 <CourtCard
                   key={court.id}
                   court={court}
                   pairing={courtPairing}
+                  selected={isSelected}
                   onRemove={() => onRemoveCourt(court.id)}
+                  onToggleSelection={onToggleCourtSelection ? () => onToggleCourtSelection(court.id) : undefined}
                 />
               );
             })

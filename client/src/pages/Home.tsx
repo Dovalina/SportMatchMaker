@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PlayerInput from "@/components/PlayerInput";
@@ -10,9 +10,15 @@ import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Player, Court, Pairings, CourtPairing } from "@shared/schema";
 
+// Extender el tipo Court para incluir el estado de selección
+interface CourtWithSelection extends Court {
+  selected: boolean;
+}
+
 export default function Home() {
   const { toast } = useToast();
   const [pairings, setPairings] = useState<CourtPairing[]>([]);
+  const [courtsWithSelection, setCourtsWithSelection] = useState<CourtWithSelection[]>([]);
 
   // Fetch players
   const {
@@ -31,6 +37,16 @@ export default function Home() {
   } = useQuery<Court[]>({
     queryKey: ["/api/courts"],
   });
+  
+  // Transform courts to courts with selection state
+  useEffect(() => {
+    // Inicializar todas las canchas como no seleccionadas al cargarlas
+    const courtsWithSelectionState = courts.map(court => ({
+      ...court,
+      selected: false
+    }));
+    setCourtsWithSelection(courtsWithSelectionState);
+  }, [courts]);
 
   // Add player mutation
   const addPlayerMutation = useMutation({
@@ -66,15 +82,32 @@ export default function Home() {
     },
   });
 
-  // Add court mutation (not used anymore - courts are predefined)
+  // Add court mutation with preset names
   const addCourtMutation = useMutation({
     mutationFn: async () => {
-      // This is no longer used as courts are predefined
-      const name = "Custom Court";
+      // Lista de canchas válidas
+      const validCourtNames = ["Lala", "AR", "Mochomos", "Combugas", "Casa del Vino", "Moric", "Central"];
+      
+      // Usar las canchas existentes del estado local
+      const existingNames = courts.map((court: Court) => court.name);
+      
+      // Filtrar nombres que ya existen
+      const availableNames = validCourtNames.filter(name => !existingNames.includes(name));
+      
+      if (availableNames.length === 0) {
+        throw new Error("Todas las canchas disponibles ya han sido agregadas");
+      }
+      
+      // Agregar la primera cancha disponible
+      const name = availableNames[0];
       await apiRequest("POST", "/api/courts", { name });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/courts"] });
+      toast({
+        title: "Cancha agregada",
+        description: "La cancha ha sido agregada exitosamente",
+      });
     },
     onError: (error) => {
       toast({
@@ -129,15 +162,36 @@ export default function Home() {
     setPairings([]);
   };
 
-  // Check if pairings can be generated
+  // Toggle court selection
+  const toggleCourtSelection = (courtId: number) => {
+    setCourtsWithSelection(prev => 
+      prev.map(court => 
+        court.id === courtId ? { ...court, selected: !court.selected } : court
+      )
+    );
+  };
+  
+  // Get number of selected courts
+  const getSelectedCourtsCount = () => {
+    return courtsWithSelection.filter(court => court.selected).length;
+  };
+  
+  // Check if pairings can be generated - based on selected courts
   const canGeneratePairings = () => {
-    return players.length >= courts.length * 4 && players.length % 4 === 0;
+    const selectedCourtsCount = getSelectedCourtsCount();
+    if (selectedCourtsCount === 0) {
+      return players.length >= courts.length * 4 && players.length % 4 === 0;
+    }
+    return players.length >= selectedCourtsCount * 4 && players.length % 4 === 0;
   };
 
-  // Generate validation message
+  // Generate validation message - based on selected courts
   const getValidationMessage = () => {
-    if (players.length < courts.length * 4) {
-      return `Necesitas ${courts.length * 4} jugadores para ${courts.length} canchas. Actualmente tienes ${players.length}.`;
+    const selectedCourtsCount = getSelectedCourtsCount();
+    const totalCourtsToUse = selectedCourtsCount > 0 ? selectedCourtsCount : courts.length;
+    
+    if (players.length < totalCourtsToUse * 4) {
+      return `Necesitas ${totalCourtsToUse * 4} jugadores para ${totalCourtsToUse} canchas. Actualmente tienes ${players.length}.`;
     }
     if (players.length % 4 !== 0) {
       return `El número de jugadores debe ser divisible por 4 para formar parejas en todas las canchas.`;
@@ -165,6 +219,8 @@ export default function Home() {
           isGenerating={generatePairingsMutation.isPending}
           onAddCourt={() => addCourtMutation.mutate()}
           onRemoveCourt={(id) => removeCourtMutation.mutate(id)}
+          onToggleCourtSelection={toggleCourtSelection}
+          courtsWithSelection={courtsWithSelection}
           onGeneratePairings={() => generatePairingsMutation.mutate()}
           canGeneratePairings={canGeneratePairings()}
           validationMessage={getValidationMessage()}

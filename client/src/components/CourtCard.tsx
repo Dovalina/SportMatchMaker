@@ -4,17 +4,25 @@ import type { Court, CourtPairing } from "@shared/schema";
 interface CourtCardProps {
   court: Court;
   pairing?: CourtPairing;
+  selected?: boolean;
   onRemove: () => void;
+  onToggleSelection?: () => void;
 }
 
-export default function CourtCard({ court, pairing, onRemove }: CourtCardProps) {
+export default function CourtCard({ court, pairing, selected = false, onRemove, onToggleSelection }: CourtCardProps) {
   return (
-    <div className="border border-gray-200 rounded-lg bg-white shadow-sm overflow-hidden">
-      <div className="bg-primary-600 text-white p-4 flex justify-between items-center">
+    <div 
+      className={`border ${selected ? 'border-[var(--color-primary)]' : 'border-gray-200'} rounded-lg bg-white shadow-sm overflow-hidden transition-all ${onToggleSelection ? 'cursor-pointer hover:shadow-md' : ''} ${selected ? 'ring-2 ring-[var(--color-primary)] ring-opacity-50' : ''}`}
+      onClick={onToggleSelection}
+    >
+      <div className={`${selected ? 'bg-[var(--color-primary)]' : 'bg-primary-600'} text-${selected ? '[var(--color-dark)]' : 'white'} p-4 flex justify-between items-center`}>
         <h3 className="font-medium">{court.name}</h3>
         <button 
-          onClick={onRemove}
-          className="text-white hover:text-primary-200"
+          onClick={(e) => {
+            e.stopPropagation(); // Previene que el click en el botón de eliminar active el toggle
+            onRemove();
+          }}
+          className={`${selected ? 'text-[var(--color-dark)] hover:text-[var(--color-dark)]/70' : 'text-white hover:text-primary-200'}`}
           aria-label={`Eliminar ${court.name}`}
         >
           <X className="h-5 w-5" />

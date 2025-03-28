@@ -47,7 +47,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/courts", async (req, res) => {
     try {
+      const validCourtNames = ["Lala", "AR", "Mochomos", "Combugas", "Casa del Vino", "Moric", "Central"];
+      
       const validatedData = insertCourtSchema.parse(req.body);
+      
+      // Si un nombre específico es proporcionado y no está en la lista, rechazar
+      if (validatedData.name && !validCourtNames.includes(validatedData.name)) {
+        return res.status(400).json({ 
+          message: "Nombre de cancha no válido. Debe ser uno de: " + validCourtNames.join(", ") 
+        });
+      }
+      
       const court = await storage.createCourt(validatedData);
       res.status(201).json(court);
     } catch (error) {
