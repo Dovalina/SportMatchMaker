@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,9 +18,11 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
-import { Trophy, Award, Loader2 } from "lucide-react";
+import { Trophy, Award, Loader2, Info, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { MatchResult, CourtPairing } from "@shared/schema";
+import { useQuery } from "@tanstack/react-query";
 
 // Extender la interfaz de CourtPairing para incluir el ID
 interface CourtPairingWithId extends CourtPairing {
@@ -47,7 +49,40 @@ interface MatchResultFormProps {
 
 export default function MatchResultForm({ pairing, onSuccess }: MatchResultFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [maxSets, setMaxSets] = useState(pairing.sets || 3);
+  const [currentSetNumber, setCurrentSetNumber] = useState(1);
+  const [setsPlayed, setSetsPlayed] = useState(0);
   const { toast } = useToast();
+
+  // Consultar resultados existentes para saber cuántos sets ya se han jugado
+  const { data: existingResults = [] } = useQuery<MatchResult[]>({
+    queryKey: [`/api/match-results/pairing/${pairing.id || pairing.courtId}`],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest(`/api/match-results/by-pairing/${pairing.id || pairing.courtId}`);
+        if (!response.ok) return [];
+        return await response.json();
+      } catch (error) {
+        console.error("Error fetching match results:", error);
+        return [];
+      }
+    },
+    enabled: !!pairing,
+  });
+
+  // Actualizar el número de set actual basado en los resultados existentes
+  useEffect(() => {
+    if (existingResults.length > 0) {
+      // Ordenar por número de set para obtener el último registrado
+      const sortedResults = [...existingResults].sort((a, b) => b.setNumber - a.setNumber);
+      const lastSetNumber = sortedResults[0].setNumber;
+      setCurrentSetNumber(lastSetNumber + 1);
+      setSetsPlayed(sortedResults.length);
+    } else {
+      setCurrentSetNumber(1);
+      setSetsPlayed(0);
+    }
+  }, [existingResults]);
 
   // Inicializar formulario
   const form = useForm<ResultFormValues>({
@@ -55,13 +90,18 @@ export default function MatchResultForm({ pairing, onSuccess }: MatchResultFormP
     defaultValues: {
       pairingId: pairing.id || pairing.courtId, // Usar courtId si id no está disponible
       gameDate: new Date().toISOString().split('T')[0],
-      setNumber: 1,
+      setNumber: currentSetNumber,
       pair1Score: 0,
       pair2Score: 0,
       winner: "pair1",
       completed: true,
     },
   });
+
+  // Actualizar el número de set cuando cambia currentSetNumber
+  useEffect(() => {
+    form.setValue("setNumber", currentSetNumber);
+  }, [currentSetNumber, form]);
 
   // Determinar ganador basado en puntajes
   const determineWinner = (pair1Score: number, pair2Score: number) => {
@@ -75,8 +115,21 @@ export default function MatchResultForm({ pairing, onSuccess }: MatchResultFormP
     form.setValue("winner", winner);
   };
 
+  // Verificar si se ha alcanzado el límite de sets
+  const maxSetsReached = setsPlayed >= maxSets;
+
   // Manejar envío del formulario
   const onSubmit = async (data: ResultFormValues) => {
+    // Verificar si ya se alcanzó el número máximo de sets
+    if (maxSetsReached) {
+      toast({
+        title: "Límite de sets alcanzado",
+        description: `Ya se han registrado ${setsPlayed} sets de un máximo de ${maxSets}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       // Preparar los datos completos del resultado
@@ -96,11 +149,16 @@ export default function MatchResultForm({ pairing, onSuccess }: MatchResultFormP
 
       // Actualizar caché de consultas
       await queryClient.invalidateQueries({ queryKey: ["/api/rankings"] });
+      await queryClient.invalidateQueries({ queryKey: [`/api/match-results/pairing/${pairing.id || pairing.courtId}`] });
       
       toast({
         title: "Resultado guardado",
         description: "El resultado del partido ha sido registrado correctamente.",
       });
+
+      // Incrementar contadores locales
+      setSetsPlayed(prev => prev + 1);
+      setCurrentSetNumber(prev => prev + 1);
 
       // Resetear formulario
       form.reset({
@@ -148,6 +206,28 @@ export default function MatchResultForm({ pairing, onSuccess }: MatchResultFormP
               <div>{pairing.pair2.player2.alias || pairing.pair2.player2.name}</div>
             </div>
           </div>
+        </div>
+        
+        {/* Mostrar información de sets */}
+        <div className="mb-4 p-3 bg-blue-50 rounded-md border border-blue-200">
+          <div className="flex items-center mb-2">
+            <Info className="h-4 w-4 text-blue-500 mr-2" />
+            <h3 className="text-sm font-medium text-blue-700">Información de sets</h3>
+          </div>
+          <p className="text-xs text-blue-600">
+            Sets configurados: <span className="font-medium">{maxSets}</span>
+          </p>
+          <p className="text-xs text-blue-600">
+            Sets jugados: <span className="font-medium">{setsPlayed}</span> de {maxSets}
+          </p>
+          {maxSetsReached && (
+            <div className="mt-2 p-2 bg-red-50 rounded border border-red-200">
+              <p className="text-xs text-red-600 flex items-center">
+                <AlertCircle className="h-3 w-3 mr-1 text-red-500" />
+                Se ha alcanzado el número máximo de sets permitidos.
+              </p>
+            </div>
+          )}
         </div>
 
         <Separator className="my-4" />
@@ -276,7 +356,7 @@ export default function MatchResultForm({ pairing, onSuccess }: MatchResultFormP
 
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || maxSetsReached}
               className="w-full"
             >
               {isSubmitting ? (

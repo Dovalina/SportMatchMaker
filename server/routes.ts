@@ -472,6 +472,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Obtener resultados por pairing ID
+  app.get("/api/match-results/by-pairing/:pairingId", async (req, res) => {
+    try {
+      const pairingId = parseInt(req.params.pairingId);
+      if (isNaN(pairingId)) {
+        return res.status(400).json({ message: "ID de emparejamiento inválido" });
+      }
+      
+      const results = await storage.getMatchResults();
+      // Filtrar resultados por pairingId
+      const filteredResults = results.filter(result => result.pairingId === pairingId);
+      res.json(filteredResults);
+    } catch (error) {
+      res.status(500).json({ message: "Error al obtener resultados del emparejamiento" });
+    }
+  });
+  
   app.post("/api/match-results", async (req, res) => {
     try {
       const result = req.body;
