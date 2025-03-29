@@ -104,8 +104,15 @@ export default function ResultDisplay({ pairings }: ResultDisplayProps) {
     }
   };
 
-  const [activeTab, setActiveTab] = useState("view");
+  const [activeTab, setActiveTab] = useState<string>("view");
   const [selectedPairingIndex, setSelectedPairingIndex] = useState(0);
+  
+  // Asegúrate de que siempre se muestre la primera pestaña cuando hay pairings
+  useEffect(() => {
+    if (pairings.length > 0) {
+      setActiveTab("view");
+    }
+  }, [pairings]);
 
   return (
     <Card className="bg-white shadow rounded-lg mb-6">
@@ -140,7 +147,7 @@ export default function ResultDisplay({ pairings }: ResultDisplayProps) {
         </div>
         
         {pairings.length > 0 && (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mb-4">
+          <Tabs defaultValue="view" value={activeTab} onValueChange={setActiveTab} className="w-full mb-4">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="view" className="flex items-center gap-1">
                 <ClipboardList className="h-4 w-4" />
@@ -154,7 +161,7 @@ export default function ResultDisplay({ pairings }: ResultDisplayProps) {
           </Tabs>
         )}
         
-        <TabsContent value="view" className={activeTab === "view" ? "block" : "hidden"}>
+        <TabsContent value="view">
           <div ref={resultsRef} className="space-y-4 bg-white p-4 rounded-lg">
             {pairings.length === 0 ? (
               <div className="flex items-center justify-center p-8 text-gray-500">
@@ -229,7 +236,7 @@ export default function ResultDisplay({ pairings }: ResultDisplayProps) {
           </div>
         </TabsContent>
         
-        <TabsContent value="results" className={activeTab === "results" ? "block" : "hidden"}>
+        <TabsContent value="results">
           {pairings.length > 0 ? (
             <>
               <div className="mb-4">
