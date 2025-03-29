@@ -2,8 +2,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Share2, Download, Trophy, ClipboardList } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 import html2canvas from "html2canvas";
 import { saveAs } from "file-saver";
 import type { CourtPairing, PlayerRanking } from "@shared/schema";
@@ -19,7 +17,16 @@ interface ResultDisplayProps {
 export default function ResultDisplay({ pairings }: ResultDisplayProps) {
   const resultsRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [selectedPairingIndex, setSelectedPairingIndex] = useState(0);
   const { toast } = useToast();
+  
+  // Reset to view mode when pairings change
+  useEffect(() => {
+    if (pairings.length > 0) {
+      setShowResults(false);
+    }
+  }, [pairings]);
   
   // Obtener los rankings de los jugadores
   const { data: rankings = [] } = useQuery<PlayerRanking[]>({
@@ -104,23 +111,15 @@ export default function ResultDisplay({ pairings }: ResultDisplayProps) {
     }
   };
 
-  const [activeTab, setActiveTab] = useState<string>("view");
-  const [selectedPairingIndex, setSelectedPairingIndex] = useState(0);
-  
-  // Asegúrate de que siempre se muestre la primera pestaña cuando hay pairings
-  useEffect(() => {
-    if (pairings.length > 0) {
-      setActiveTab("view");
-    }
-  }, [pairings]);
-
   return (
     <Card className="bg-white shadow rounded-lg mb-6">
       <CardContent className="p-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-medium text-gray-900">Resultados</h2>
+          <h2 className="text-lg font-medium text-gray-900">
+            {showResults ? "Registrar Resultados" : "Rol de Juegos"}
+          </h2>
           
-          {pairings.length > 0 && activeTab === "view" && (
+          {pairings.length > 0 && !showResults && (
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -146,26 +145,32 @@ export default function ResultDisplay({ pairings }: ResultDisplayProps) {
           )}
         </div>
         
+        {/* Botones de cambio de vista */}
         {pairings.length > 0 && (
-          <Tabs defaultValue="view" value={activeTab} onValueChange={setActiveTab} className="w-full mb-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="view" className="flex items-center gap-1">
-                <ClipboardList className="h-4 w-4" />
-                Rol de juegos
-              </TabsTrigger>
-              <TabsTrigger value="results" className="flex items-center gap-1">
-                <Trophy className="h-4 w-4" />
-                Registrar resultados
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="bg-gray-100 rounded-md p-1 flex mb-4">
+            <button
+              onClick={() => setShowResults(false)} 
+              className={`flex items-center justify-center gap-1 flex-1 py-2 rounded-md transition-all ${!showResults ? 'bg-white shadow text-primary-600' : 'text-gray-600 hover:bg-gray-200'}`}
+            >
+              <ClipboardList className="h-4 w-4" />
+              <span>Rol de juegos</span>
+            </button>
+            <button 
+              onClick={() => setShowResults(true)}
+              className={`flex items-center justify-center gap-1 flex-1 py-2 rounded-md transition-all ${showResults ? 'bg-white shadow text-primary-600' : 'text-gray-600 hover:bg-gray-200'}`}
+            >
+              <Trophy className="h-4 w-4" />
+              <span>Registrar resultados</span>
+            </button>
+          </div>
         )}
         
-        <TabsContent value="view">
+        {/* Vista de rol de juegos */}
+        {!showResults && (
           <div ref={resultsRef} className="space-y-4 bg-white p-4 rounded-lg">
             {pairings.length === 0 ? (
               <div className="flex items-center justify-center p-8 text-gray-500">
-                Haz clic en "Generar Parejas" para crear el rol de juegos
+                Haz clic en "Generar Rol de Juegos" para crear el rol de juegos
               </div>
             ) : (
               <>
@@ -234,55 +239,58 @@ export default function ResultDisplay({ pairings }: ResultDisplayProps) {
               </>
             )}
           </div>
-        </TabsContent>
+        )}
         
-        <TabsContent value="results">
-          {pairings.length > 0 ? (
-            <>
-              <div className="mb-4">
-                <h3 className="text-md font-medium mb-3">Seleccionar cancha para registrar resultado</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {pairings.map((pairing, index) => (
-                    <Button
-                      key={index}
-                      variant={selectedPairingIndex === index ? "default" : "outline"}
-                      onClick={() => setSelectedPairingIndex(index)}
-                      className="justify-start h-auto py-2 text-left"
-                    >
-                      <div>
-                        <div className="font-medium">{pairing.courtName}</div>
-                        <div className="text-xs opacity-80">
-                          {pairing.pair1.player1.alias || pairing.pair1.player1.name} / {pairing.pair1.player2.alias || pairing.pair1.player2.name} vs {pairing.pair2.player1.alias || pairing.pair2.player1.name} / {pairing.pair2.player2.alias || pairing.pair2.player2.name}
+        {/* Vista de registro de resultados */}
+        {showResults && (
+          <div>
+            {pairings.length > 0 ? (
+              <>
+                <div className="mb-4">
+                  <h3 className="text-md font-medium mb-3">Seleccionar cancha para registrar resultado</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {pairings.map((pairing, index) => (
+                      <Button
+                        key={index}
+                        variant={selectedPairingIndex === index ? "default" : "outline"}
+                        onClick={() => setSelectedPairingIndex(index)}
+                        className="justify-start h-auto py-2 text-left"
+                      >
+                        <div>
+                          <div className="font-medium">{pairing.courtName}</div>
+                          <div className="text-xs opacity-80">
+                            {pairing.pair1.player1.alias || pairing.pair1.player1.name} / {pairing.pair1.player2.alias || pairing.pair1.player2.name} vs {pairing.pair2.player1.alias || pairing.pair2.player1.name} / {pairing.pair2.player2.alias || pairing.pair2.player2.name}
+                          </div>
                         </div>
-                      </div>
-                    </Button>
-                  ))}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
+                
+                <div className="my-4 border-t border-gray-200"></div>
+                
+                {/* Formulario de registro de resultados */}
+                <MatchResultForm
+                  pairing={pairings[selectedPairingIndex]}
+                  onSuccess={() => {
+                    // Invalidar los rankings para que se actualicen
+                    queryClient.invalidateQueries({ queryKey: ["/api/rankings"] });
+                    // Mostrar mensaje de éxito
+                    toast({
+                      title: "Resultado guardado",
+                      description: "El resultado ha sido guardado y los rankings actualizados.",
+                      duration: 3000,
+                    });
+                  }}
+                />
+              </>
+            ) : (
+              <div className="flex items-center justify-center p-8 text-gray-500">
+                Primero debes generar parejas para poder registrar resultados
               </div>
-              
-              <Separator className="my-4" />
-              
-              {/* Formulario de registro de resultados */}
-              <MatchResultForm
-                pairing={pairings[selectedPairingIndex]}
-                onSuccess={() => {
-                  // Invalidar los rankings para que se actualicen
-                  queryClient.invalidateQueries({ queryKey: ["/api/rankings"] });
-                  // Mostrar mensaje de éxito
-                  useToast().toast({
-                    title: "Resultado guardado",
-                    description: "El resultado ha sido guardado y los rankings actualizados.",
-                    duration: 3000,
-                  });
-                }}
-              />
-            </>
-          ) : (
-            <div className="flex items-center justify-center p-8 text-gray-500">
-              Primero debes generar parejas para poder registrar resultados
-            </div>
-          )}
-        </TabsContent>
+            )}
+          </div>
+        )}
         
         {isSharing && (
           <div className="mt-4 text-center text-sm text-gray-500">
